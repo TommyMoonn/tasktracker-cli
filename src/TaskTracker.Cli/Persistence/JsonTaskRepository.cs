@@ -39,7 +39,12 @@ public class JsonTaskRepository : ITaskRepository
         if (string.IsNullOrWhiteSpace(json))
             return new List<TaskItem>();
 
-        return JsonSerializer.Deserialize<List<TaskItem>>(json) ?? new List<TaskItem>();
+        var options = new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        return JsonSerializer.Deserialize<List<TaskItem>>(json, options) ?? new List<TaskItem>();
     }
 
     public void Add(TaskItem task)
