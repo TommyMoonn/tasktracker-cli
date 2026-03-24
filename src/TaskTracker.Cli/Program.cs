@@ -30,9 +30,17 @@ public class Program
             case "-l":
                 List<TaskItem> tasks;
 
-                bool showCompleted = args.Length > 1 &&
-                                     (args[1].Equals("-c") || args[1].Equals("--completed"));
-                tasks = showCompleted ? service.GetCompletedTasks() : service.GetTasks();
+                bool? showCompleted = null;
+
+                if (args.Length > 1)
+                {
+                    if (args[1].Equals("-c") || args[1].Equals("--completed"))
+                        showCompleted = true;
+                    else if (args[1].Equals("-p") || args[1].Equals("--pending"))
+                        showCompleted = false;
+                }
+
+                tasks = service.GetTasksByStatus(showCompleted);
 
                 foreach (var task in tasks)
                 {
@@ -73,12 +81,29 @@ public class Program
                     return;
                 }
 
-                TaskResult markCompleteResult = service.CompleteTask(completeId);
+                TaskResult markCompleteResult = service.UpdateStatus(completeId, true);
                 Console.WriteLine(GetMessage(markCompleteResult, args[1]));
+                break;
+            case "undo":
+            case "revert":
+                if (args.Length < 2)
+                {
+                    Console.WriteLine("Usage: [undo | revert] <id>");
+                    return;
+                }
+
+                if (!int.TryParse(args[1], out int undoId))
+                {
+                    Console.WriteLine("Invalid id input.");
+                    return;
+                }
+
+                TaskResult undoResult = service.UpdateStatus(undoId, false);
+                Console.WriteLine(GetMessage(undoResult, args[1]));
                 break;
             case "update":
             case "edit":
-            case "-u":
+            case "-e":
                 if (args.Length < 2)
                 {
                     Console.WriteLine("Usage: [update | -u] <id> [title | -t] <newTitle> [note | -n] <newNote>");
@@ -91,8 +116,8 @@ public class Program
                     return;
                 }
 
-                string newTitle = null;
-                string newNote = null;
+                string? newTitle = null;
+                string? newNote = null;
 
                 for (int i = 2; i < args.Length; i++)
                 {
@@ -154,8 +179,10 @@ public class Program
             TaskResult.UpdateSuccess => $"Task {identifier} updated successfully.",
             TaskResult.RemoveSuccess => $"Task {identifier} removed.",
             TaskResult.MarkCompleted => $"Task {identifier} marked completed.",
+            TaskResult.UndoSuccess => $"Task {identifier} completion undone.",
             TaskResult.UpdateFailed => $"Failed to update task {identifier}.",
             TaskResult.AlreadyCompleted => $"Task {identifier} is already completed.",
+            TaskResult.NotCompleted => $"Task {identifier} is not completed, nothing to undo.",
             TaskResult.TaskNotFound => $"Task {identifier} not found.",
             TaskResult.DuplicateTitle => $"Task title '{identifier}' already exists.",
             TaskResult.EmptyTitle => "Task title cannot be empty.",

@@ -16,7 +16,9 @@ namespace TaskTracker.Cli.Services
         EmptyTitle,
         DuplicateTitle,
         UpdateFailed,
-        AlreadyCompleted
+        AlreadyCompleted,
+        NotCompleted,
+        UndoSuccess
     }
     public class TaskServices
     {
@@ -55,7 +57,7 @@ namespace TaskTracker.Cli.Services
             return TaskResult.AddSuccess;
         }
 
-        public TaskResult UpdateTask(int id, string title, string note)
+        public TaskResult UpdateTask(int id, string? title, string? note)
         {
             var task = _repo.GetById(id);
             if (task == null)
@@ -87,19 +89,35 @@ namespace TaskTracker.Cli.Services
 
         public List<TaskItem> GetTasks() => _repo.GetAll();
 
-        public List<TaskItem> GetCompletedTasks() => _repo.GetAll().Where(t => t.IsCompleted).ToList();
+        public List<TaskItem> GetTasksByStatus(bool? isCompleted = null)
+        {
+            var allTasks = _repo.GetAll();
 
-        public TaskResult CompleteTask(int id)
+            if (isCompleted == null)
+                return allTasks;
+
+            return allTasks.Where(t => t.IsCompleted == isCompleted.Value).ToList();
+        }
+
+        public TaskResult UpdateStatus(int id, bool status)
         {
             var task = _repo.GetById(id);
             if (task == null)
                 return TaskResult.TaskNotFound;
 
-            if (task.IsCompleted)
+            if (task.IsCompleted && status)
                 return TaskResult.AlreadyCompleted;
+            
+            if (!task.IsCompleted && !status)
+                return TaskResult.NotCompleted;
 
-            task.IsCompleted = true;
-            return _repo.Update(task) ? TaskResult.MarkCompleted : TaskResult.UpdateFailed;
+            task.IsCompleted = status;
+
+            bool success = _repo.Update(task);
+            if (!success)
+                return TaskResult.UpdateFailed;
+
+            return status ? TaskResult.MarkCompleted : TaskResult.UndoSuccess;
         }
     }
 }
