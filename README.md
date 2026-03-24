@@ -1,5 +1,3 @@
-Tags: [[programming]], [[readme]]
-
 ![.NET|50](https://img.shields.io/badge/.NET-10.0-blue)  
 ![C#](https://img.shields.io/badge/C%23-11-informational)
 ![License](https://img.shields.io/badge/License-MIT-green)
