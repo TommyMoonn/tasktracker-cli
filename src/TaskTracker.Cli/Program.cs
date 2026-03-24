@@ -8,7 +8,8 @@ public class Program
 {
     public static void Main(String[] args)
     {
-        const string filePath = "task.json";
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var filePath = Path.Combine(home, ".tasktracker.json"); 
         var repo = new JsonTaskRepository(filePath);
         var service = new TaskServices(repo);
 
