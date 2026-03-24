@@ -45,8 +45,8 @@ public class Program
 
                 foreach (var task in tasks)
                 {
-                    string status = task.IsCompleted ? "✅ Completed" : "⏳ Pending";
-                    Console.WriteLine($"{task.Id}. {task.Title} - {task.Note} {status}");
+                    string status = task.IsCompleted ? "Completed" : "Pending";
+                    Console.WriteLine($"{task.Id}. {task.Title} - {task.Note} >> {status}");
                 }
                 break;
             case "add":
