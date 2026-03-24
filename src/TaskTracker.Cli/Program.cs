@@ -165,10 +165,12 @@ public class Program
     private static void ShowHelpMenu()
     {
         Console.WriteLine("Usage: tasktracker [command] [options]");
-        Console.WriteLine("   ls [--completed | -c]              | -l : List tasks");
-        Console.WriteLine("   add <title> [--note | -n <note>]   | -a : Add a new task");
-        Console.WriteLine("   complete <id>                      | -c : Mark a task as completed");
-        Console.WriteLine("   remove <id>                        | -d : Delete task by ID");
+        Console.WriteLine("   ls [--completed | -c] or [--pending | -p]             | -l : List tasks");
+        Console.WriteLine("   add <title> [--note | -n <note>] <note>               | -a : Add a new task");
+        Console.WriteLine("   complete <id>                                         | -c : Mark a task as completed");
+        Console.WriteLine("   undo <id>                                             | revert : Undo a task completion");
+        Console.WriteLine("   update <id> -t <title> -n <note>                      | -u: Update task details");
+        Console.WriteLine("   remove <id>                                           | -d : Delete task by ID");
     }
 
     private static string GetMessage(TaskResult result, string identifier)
