@@ -76,6 +76,39 @@ public class Program
                 TaskResult markCompleteResult = service.CompleteTask(completeId);
                 Console.WriteLine(GetMessage(markCompleteResult, args[1]));
                 break;
+            case "update":
+            case "edit":
+            case "-u":
+                if (args.Length < 2)
+                {
+                    Console.WriteLine("Usage: [update | -u] <id> [title | -t] <newTitle> [note | -n] <newNote>");
+                    return;
+                }
+
+                if (!int.TryParse(args[1], out int updateId))
+                {
+                    Console.WriteLine("Invalid id input.");
+                    return;
+                }
+
+                string newTitle = null;
+                string newNote = null;
+
+                for (int i = 2; i < args.Length; i++)
+                {
+                    if ("title" == args[i].Trim() || "-t" == args[i].Trim())
+                    {
+                        newTitle = args[++i];
+                    }
+                    else if ("note" == args[i].Trim() || "-n" == args[i].Trim())
+                    {
+                        newNote = args[++i];
+                    }
+                }
+
+                TaskResult updateResult = service.UpdateTask(updateId, newTitle, newNote);
+                Console.WriteLine(GetMessage(updateResult, args[1]));
+                break;
             case "remove":
             case "delete":
             case "-d":
