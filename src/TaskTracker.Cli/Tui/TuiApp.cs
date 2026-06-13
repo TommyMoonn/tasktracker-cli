@@ -48,8 +48,32 @@ public class TuiApp
                 _state.MoveSelection(-1, tasks.Count);
                 break;
 
+            case ConsoleKey.K:
+                _state.MoveSelection(-1, tasks.Count);
+                break;
+
             case ConsoleKey.DownArrow:
                 _state.MoveSelection(1, tasks.Count);
+                break;
+
+            case ConsoleKey.J:
+                _state.MoveSelection(1, tasks.Count);
+                break;
+
+            case ConsoleKey.PageUp:
+                _state.PageSelection(-TuiRenderer.GetPageSize(), tasks.Count);
+                break;
+
+            case ConsoleKey.PageDown:
+                _state.PageSelection(TuiRenderer.GetPageSize(), tasks.Count);
+                break;
+
+            case ConsoleKey.Home:
+                _state.MoveToStart();
+                break;
+
+            case ConsoleKey.End:
+                _state.MoveToEnd(tasks.Count);
                 break;
 
             case ConsoleKey.LeftArrow:
@@ -57,6 +81,10 @@ public class TuiApp
                 break;
 
             case ConsoleKey.RightArrow:
+                _state.NextView();
+                break;
+
+            case ConsoleKey.Tab:
                 _state.NextView();
                 break;
 
@@ -86,7 +114,14 @@ public class TuiApp
                 break;
 
             case ConsoleKey.Escape:
+                if (string.IsNullOrWhiteSpace(_state.SearchQuery))
+                {
+                    _state.StatusMessage = "No search to clear.";
+                    break;
+                }
+
                 _state.SearchQuery = null;
+                _state.ResetListPosition();
                 _state.StatusMessage = "Search cleared.";
                 break;
 
@@ -164,6 +199,7 @@ public class TuiApp
             : ToStatusMessage(result, 0);
 
         _state.SearchQuery = null;
+        _state.SelectedIndex = int.MaxValue;
         Console.CursorVisible = false;
     }
 
@@ -242,7 +278,7 @@ public class TuiApp
         string? query = Prompt("Search");
 
         _state.SearchQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
-        _state.SelectedIndex = 0;
+        _state.ResetListPosition();
         _state.StatusMessage = _state.SearchQuery == null ? "Search cleared." : $"Searching for '{_state.SearchQuery}'.";
         Console.CursorVisible = false;
     }
