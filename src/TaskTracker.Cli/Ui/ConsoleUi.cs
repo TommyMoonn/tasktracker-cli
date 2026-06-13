@@ -20,6 +20,7 @@ public static class ConsoleUi
         WriteCommand("list", "[--all | --open | --done] [--priority <priority>]", "List tasks");
         WriteCommand("add", "<title> [--note <note>] [--priority <priority>]", "Add a task");
         WriteCommand("view", "<id>", "Show one task");
+        WriteCommand("fun", "", "Show the TaskTracker ASCII banner");
         WriteCommand("done", "<id>", "Mark a task as done");
         WriteCommand("reopen", "<id>", "Move a task back to open");
         WriteCommand("edit", "<id> [--title <title>] [--note <note>] [--priority <priority>]", "Edit task details");
@@ -39,6 +40,7 @@ public static class ConsoleUi
         WriteMuted("  reopen: undo, revert");
         WriteMuted("  edit: update, set");
         WriteMuted("  delete: remove, rm, del");
+        WriteMuted("  fun: icon, logo, banner");
 
         Console.WriteLine();
         WriteSection("Examples");
@@ -47,6 +49,7 @@ public static class ConsoleUi
         WriteMuted("  tasktracker done 3");
         WriteMuted("  tasktracker edit 3 --priority normal");
         WriteMuted("  tasktracker view 3");
+        WriteMuted("  tasktracker fun");
 
         Console.WriteLine();
         WriteTip("Quotes are optional for simple input, but still useful when your shell needs exact spacing.");
@@ -88,6 +91,14 @@ public static class ConsoleUi
                 WriteMuted("  tasktracker view 2");
                 break;
 
+            case "fun":
+                ShowHeader("tasktracker fun", "Show the TaskTracker ASCII banner.");
+                WriteMuted("Usage: tasktracker fun");
+                WriteMuted("Aliases: icon, logo, banner");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker icon");
+                break;
+
             case "done":
                 ShowHeader("tasktracker done", "Mark a task as completed.");
                 WriteMuted("Usage: tasktracker done <id>");
@@ -127,6 +138,84 @@ public static class ConsoleUi
                 ShowInvalidCommand(command);
                 break;
         }
+    }
+
+    public static void ShowLogo()
+    {
+        Console.WriteLine();
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"  ████████╗ █████╗ ███████╗██╗  ██╗");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝");
+
+        SetColor(ConsoleColor.White);
+        Console.WriteLine(@"     ██║   ███████║███████╗█████╔╝ ");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"     ██║   ██╔══██║╚════██║██╔═██╗ ");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ██║   ██║  ██║███████║██║  ██╗");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+
+        Console.WriteLine();
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"  ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ ");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗");
+
+        SetColor(ConsoleColor.White);
+        Console.WriteLine(@"     ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"     ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+
+        ResetColor();
+
+        Console.WriteLine();
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write("     [ ");
+        ResetColor();
+        SetColor(ConsoleColor.Green);
+        Console.Write("track tasks");
+        ResetColor();
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write(" | ");
+        ResetColor();
+        SetColor(ConsoleColor.Yellow);
+        Console.Write("clear backlog");
+        ResetColor();
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write(" | ");
+        ResetColor();
+        SetColor(ConsoleColor.Red);
+        Console.Write("ship work");
+        ResetColor();
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(" ]");
+        ResetColor();
+
+        Console.WriteLine();
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write("     by ");
+        ResetColor();
+        SetColor(ConsoleColor.Magenta);
+        Console.WriteLine("@TommyMoonn");
+        ResetColor();
+
+        Console.WriteLine();
     }
 
     public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter)
@@ -453,6 +542,7 @@ public static class ConsoleUi
             "update" or "set" or "-e" or "-u" => "edit",
             "remove" or "rm" or "del" or "-d" => "delete",
             "show" or "info" => "view",
+            "icon" or "logo" or "banner" => "fun",
             _ => command.Trim().ToLowerInvariant()
         };
     }

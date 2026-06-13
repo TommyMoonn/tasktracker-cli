@@ -80,6 +80,13 @@ public class Program
                 HandleDelete(service, commandArgs);
                 break;
 
+            case "fun":
+            case "icon":
+            case "logo":
+            case "banner":
+                ConsoleUi.ShowLogo();
+                break;
+
             case "view":
             case "show":
             case "info":
