@@ -13,18 +13,27 @@ public static class ConsoleUi
 
         WriteSection("Usage");
         WriteMuted("  tasktracker [command] [options]");
-        WriteMuted("  tasktracker                 List all tasks");
+        WriteMuted("  tasktracker                 List active tasks");
         Console.WriteLine();
 
         WriteSection("Core commands");
-        WriteCommand("list", "[--all | --open | --done] [--priority <priority>] [--due <filter>]", "List tasks");
+        WriteCommand("list", "[--all | --open | --done] [--archived] [--priority <priority>] [--due <filter>]", "List tasks");
+        WriteCommand("search", "<text> [--archived | --include-archived]", "Search task titles and notes");
         WriteCommand("add", "<title> [--note <note>] [--priority <priority>] [--due <date>]", "Add a task");
         WriteCommand("view", "<id>", "Show one task");
         WriteCommand("fun", "", "Show the TaskTracker ASCII banner");
         WriteCommand("done", "<id>", "Mark a task as done");
         WriteCommand("reopen", "<id>", "Move a task back to open");
+        WriteCommand("archive", "[id]", "Archive one completed task, or all completed tasks");
+        WriteCommand("restore", "<id>", "Restore an archived task");
         WriteCommand("edit", "<id> [--title <title>] [--note <note>] [--priority <priority>] [--due <date|none>]", "Edit task details");
         WriteCommand("delete", "<id>", "Delete a task");
+
+        Console.WriteLine();
+        WriteSection("Archive filters");
+        WriteMuted("  Normal lists hide archived tasks.");
+        WriteMuted("  Use --archived to show archived tasks only.");
+        WriteMuted("  Use --include-archived to search/list both active and archived tasks.");
 
         Console.WriteLine();
         WriteSection("Priority values");
@@ -41,9 +50,11 @@ public static class ConsoleUi
         Console.WriteLine();
         WriteSection("Aliases");
         WriteMuted("  list: ls");
+        WriteMuted("  search: find");
         WriteMuted("  add: new");
         WriteMuted("  done: complete, finish");
         WriteMuted("  reopen: undo, revert");
+        WriteMuted("  restore: unarchive");
         WriteMuted("  edit: update, set");
         WriteMuted("  delete: remove, rm, del");
         WriteMuted("  fun: icon, logo, banner");
@@ -52,10 +63,10 @@ public static class ConsoleUi
         WriteSection("Examples");
         WriteMuted("  tasktracker add Buy groceries --priority high --due tomorrow --note carrots potatoes oil");
         WriteMuted("  tasktracker list --open --priority high --due week");
-        WriteMuted("  tasktracker list --overdue");
-        WriteMuted("  tasktracker done 3");
-        WriteMuted("  tasktracker edit 3 --priority normal");
-        WriteMuted("  tasktracker view 3");
+        WriteMuted("  tasktracker search groceries");
+        WriteMuted("  tasktracker archive");
+        WriteMuted("  tasktracker list --archived");
+        WriteMuted("  tasktracker restore 3");
         WriteMuted("  tasktracker fun");
 
         Console.WriteLine();
@@ -69,16 +80,26 @@ public static class ConsoleUi
         switch (command)
         {
             case "list":
-                ShowHeader("tasktracker list", "List tasks with optional status, priority, and due date filters.");
-                WriteMuted("Usage: tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
+                ShowHeader("tasktracker list", "List tasks with optional status, archive, priority, and due date filters.");
+                WriteMuted("Usage: tasktracker list [--all | --open | --done] [--archived | --include-archived] [--priority <low|normal|high>] [--due <filter>]");
                 WriteMuted("Alias: ls");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker list");
                 WriteMuted("  tasktracker list --open");
                 WriteMuted("  tasktracker list --priority high");
                 WriteMuted("  tasktracker list --due today");
-                WriteMuted("  tasktracker list --overdue");
-                WriteMuted("  tasktracker ls --done --priority low --due week");
+                WriteMuted("  tasktracker list --archived");
+                WriteMuted("  tasktracker list --include-archived");
+                break;
+
+            case "search":
+                ShowHeader("tasktracker search", "Search task titles and notes.");
+                WriteMuted("Usage: tasktracker search <text> [--archived | --include-archived]");
+                WriteMuted("Alias: find");
+                WriteMuted("Examples:");
+                WriteMuted("  tasktracker search groceries");
+                WriteMuted("  tasktracker search report draft");
+                WriteMuted("  tasktracker search groceries --archived");
                 break;
 
             case "add":
@@ -99,6 +120,25 @@ public static class ConsoleUi
                 WriteMuted("Aliases: show, info");
                 WriteMuted("Example:");
                 WriteMuted("  tasktracker view 2");
+                break;
+
+            case "archive":
+                ShowHeader("tasktracker archive", "Archive completed tasks so they disappear from normal lists.");
+                WriteMuted("Usage: tasktracker archive [id]");
+                WriteMuted("Examples:");
+                WriteMuted("  tasktracker archive");
+                WriteMuted("  tasktracker archive 2");
+                WriteMuted("Notes:");
+                WriteMuted("  Without an id, archives all completed active tasks.");
+                WriteMuted("  A single task must be completed before it can be archived.");
+                break;
+
+            case "restore":
+                ShowHeader("tasktracker restore", "Restore an archived task back to normal lists.");
+                WriteMuted("Usage: tasktracker restore <id>");
+                WriteMuted("Alias: unarchive");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker restore 2");
                 break;
 
             case "fun":
@@ -135,7 +175,6 @@ public static class ConsoleUi
                 WriteMuted("  tasktracker edit 2 --priority high");
                 WriteMuted("  tasktracker edit 2 --due tomorrow");
                 WriteMuted("  tasktracker edit 2 --due none");
-                WriteMuted("  tasktracker edit 2 Buy groceries today --priority normal --due 2026-06-20");
                 break;
 
             case "delete":
@@ -189,7 +228,7 @@ public static class ConsoleUi
         Console.WriteLine();
     }
 
-    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter, string? dueFilter)
+    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter, string? dueFilter, bool? archivedFilter)
     {
         string statusText = completedFilter switch
         {
@@ -199,6 +238,13 @@ public static class ConsoleUi
         };
 
         List<string> filterParts = new() { $"Showing {statusText} tasks" };
+
+        filterParts.Add(archivedFilter switch
+        {
+            true => "archived only",
+            false => "active only",
+            _ => "including archived"
+        });
 
         if (priorityFilter != null)
             filterParts.Add($"{TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant()} priority");
@@ -214,7 +260,30 @@ public static class ConsoleUi
         if (tasks.Count == 0)
         {
             Console.WriteLine();
-            WriteEmptyState(completedFilter, priorityFilter, dueFilter);
+            WriteEmptyState(completedFilter, priorityFilter, dueFilter, archivedFilter);
+            return;
+        }
+
+        Console.WriteLine();
+        WriteTaskTable(tasks);
+    }
+
+    public static void ShowSearchResults(IReadOnlyList<TaskItem> tasks, string searchText, bool? archivedFilter)
+    {
+        string archiveText = archivedFilter switch
+        {
+            true => "archived only",
+            false => "active only",
+            _ => "including archived"
+        };
+
+        ShowHeader("Search Results", $"Query: {searchText} | {archiveText}");
+        ShowSummary(tasks);
+
+        if (tasks.Count == 0)
+        {
+            Console.WriteLine();
+            WriteStatusBox("Empty", $"No tasks matched '{searchText}'.", ConsoleColor.DarkGray);
             return;
         }
 
@@ -224,7 +293,8 @@ public static class ConsoleUi
 
     public static void ShowTaskDetails(TaskItem task)
     {
-        ShowHeader($"Task #{task.Id}", task.IsCompleted ? "Status: Done" : "Status: Open");
+        string status = task.IsArchived ? "Archived" : task.IsCompleted ? "Done" : "Open";
+        ShowHeader($"Task #{task.Id}", $"Status: {status}");
 
         WriteSection("Title");
         Console.WriteLine($"  {task.Title}");
@@ -236,6 +306,10 @@ public static class ConsoleUi
 
         WriteSection("Due Date");
         WriteDueDateLine(task.DueDate, task.IsCompleted);
+        Console.WriteLine();
+
+        WriteSection("Archived");
+        Console.WriteLine(task.IsArchived ? "  Yes" : "  No");
         Console.WriteLine();
 
         WriteSection("Note");
@@ -254,11 +328,16 @@ public static class ConsoleUi
             case TaskResult.RemoveSuccess:
             case TaskResult.MarkCompleted:
             case TaskResult.UndoSuccess:
+            case TaskResult.ArchiveSuccess:
+            case TaskResult.RestoreSuccess:
                 WriteStatusBox("Success", message, ConsoleColor.Green);
                 break;
 
             case TaskResult.AlreadyCompleted:
             case TaskResult.NotCompleted:
+            case TaskResult.AlreadyArchived:
+            case TaskResult.NotArchived:
+            case TaskResult.NoCompletedTasksToArchive:
                 WriteStatusBox("No change", message, ConsoleColor.Yellow);
                 break;
 
@@ -266,6 +345,18 @@ public static class ConsoleUi
                 WriteStatusBox("Error", message, ConsoleColor.Red);
                 break;
         }
+    }
+
+    public static void ShowArchiveCompletedResult(int archivedCount)
+    {
+        if (archivedCount == 0)
+        {
+            ShowResult(TaskResult.NoCompletedTasksToArchive, string.Empty);
+            return;
+        }
+
+        string label = archivedCount == 1 ? "task" : "tasks";
+        WriteStatusBox("Success", $"Archived {archivedCount} completed {label}.", ConsoleColor.Green);
     }
 
     public static void ShowUsage(string usage)
@@ -313,29 +404,44 @@ public static class ConsoleUi
     private static void ShowSummary(IReadOnlyList<TaskItem> tasks)
     {
         int completed = tasks.Count(t => t.IsCompleted);
-        int pending = tasks.Count - completed;
+        int pending = tasks.Count(t => !t.IsCompleted);
+        int archived = tasks.Count(t => t.IsArchived);
         int highPriority = tasks.Count(t => TaskPriority.TryNormalize(t.Priority, out string priority) && priority == TaskPriority.High);
         int overdue = tasks.Count(t => TaskDueDate.IsOverdue(t.DueDate, t.IsCompleted));
 
         Console.WriteLine();
-        WriteMetric("Total", tasks.Count, ConsoleColor.Cyan);
+        WriteMetric("Total", tasks.Count.ToString(), ConsoleColor.Cyan);
         Console.Write("  ");
-        WriteMetric("Done", completed, ConsoleColor.Green);
+        WriteMetric("Done", completed.ToString(), ConsoleColor.Green);
         Console.Write("  ");
-        WriteMetric("Open", pending, ConsoleColor.Yellow);
+        WriteMetric("Open", pending.ToString(), ConsoleColor.Yellow);
         Console.Write("  ");
-        WriteMetric("High", highPriority, ConsoleColor.Red);
-        Console.Write("  ");
-        WriteMetric("Overdue", overdue, ConsoleColor.Magenta);
+        WriteMetric("Archived", archived.ToString(), ConsoleColor.DarkGray);
+
+        if (highPriority > 0)
+        {
+            Console.Write("  ");
+            WriteMetric("High", highPriority.ToString(), ConsoleColor.Red);
+        }
+
+        if (overdue > 0)
+        {
+            Console.Write("  ");
+            WriteMetric("Overdue", overdue.ToString(), ConsoleColor.Magenta);
+        }
+
         Console.WriteLine();
     }
 
-    private static void WriteMetric(string label, int value, ConsoleColor color)
+    private static void WriteMetric(string label, string value, ConsoleColor valueColor)
     {
         SetColor(ConsoleColor.DarkGray);
         Console.Write("[");
-        SetColor(color);
-        Console.Write($"{label}: {value}");
+        ResetColor();
+        SetColor(ConsoleColor.Gray);
+        Console.Write($"{label}: ");
+        SetColor(valueColor);
+        Console.Write(value);
         SetColor(ConsoleColor.DarkGray);
         Console.Write("]");
         ResetColor();
@@ -344,10 +450,12 @@ public static class ConsoleUi
     private static void WriteTaskTable(IReadOnlyList<TaskItem> tasks)
     {
         int width = GetSafeWidth();
+
         int idWidth = 4;
-        int statusWidth = 8;
+        int statusWidth = 9;
         int priorityWidth = 8;
         int dueWidth = 12;
+
         int fixedWidth = idWidth + statusWidth + priorityWidth + dueWidth + 15;
         int remaining = Math.Max(30, width - fixedWidth);
         int titleWidth = Math.Max(18, (int)(remaining * 0.48));
@@ -359,11 +467,28 @@ public static class ConsoleUi
 
         foreach (var task in tasks)
         {
-            string statusText = task.IsCompleted ? "Done" : "Open";
+            string statusText = task.IsArchived ? "Archived" : task.IsCompleted ? "Done" : "Open";
             string priorityText = TaskPriority.ToDisplayName(task.Priority);
             string dueText = TaskDueDate.ToDisplayText(task.DueDate);
             string note = string.IsNullOrWhiteSpace(task.Note) ? "-" : task.Note;
-            WriteTableRow(task.Id.ToString(), statusText, priorityText, dueText, task.Title, note, idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted, priority: task.Priority, dueDate: task.DueDate);
+
+            WriteTableRow(
+                task.Id.ToString(),
+                statusText,
+                priorityText,
+                dueText,
+                task.Title,
+                note,
+                idWidth,
+                statusWidth,
+                priorityWidth,
+                dueWidth,
+                titleWidth,
+                noteWidth,
+                isCompleted: task.IsCompleted,
+                isArchived: task.IsArchived,
+                priority: task.Priority,
+                dueDate: task.DueDate);
         }
 
         WriteTableBorder('└', '┴', '┘', idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth);
@@ -384,6 +509,7 @@ public static class ConsoleUi
         int noteWidth,
         bool isHeader = false,
         bool isCompleted = false,
+        bool isArchived = false,
         string? priority = null,
         DateOnly? dueDate = null)
     {
@@ -396,7 +522,7 @@ public static class ConsoleUi
         SetColor(ConsoleColor.DarkGray);
         Console.Write(" │ ");
 
-        SetColor(isHeader ? ConsoleColor.Cyan : isCompleted ? ConsoleColor.Green : ConsoleColor.Yellow);
+        SetColor(isHeader ? ConsoleColor.Cyan : GetStatusColor(isCompleted, isArchived));
         Console.Write(Fit(status, statusWidth).PadRight(statusWidth));
 
         SetColor(ConsoleColor.DarkGray);
@@ -456,11 +582,15 @@ public static class ConsoleUi
         ResetColor();
     }
 
-    private static void WriteEmptyState(bool? completedFilter, string? priorityFilter, string? dueFilter)
+    private static void WriteEmptyState(bool? completedFilter, string? priorityFilter, string? dueFilter, bool? archivedFilter)
     {
         string message;
 
-        if (dueFilter != null)
+        if (archivedFilter == true)
+        {
+            message = "No archived tasks found.";
+        }
+        else if (dueFilter != null)
         {
             message = $"No tasks found that are {TaskDueDate.ToFilterDisplayText(dueFilter)}.";
         }
@@ -475,7 +605,7 @@ public static class ConsoleUi
             {
                 true => "No completed tasks yet.",
                 false => "No pending tasks. Nice work.",
-                _ => "No tasks found. Add one with: tasktracker add \"Task title\""
+                _ => "No active tasks found. Add one with: tasktracker add \"Task title\""
             };
         }
 
@@ -494,6 +624,14 @@ public static class ConsoleUi
         SetColor(GetDueDateColor(dueDate, isCompleted));
         Console.WriteLine($"  {TaskDueDate.ToDisplayText(dueDate)}");
         ResetColor();
+    }
+
+    private static ConsoleColor GetStatusColor(bool isCompleted, bool isArchived)
+    {
+        if (isArchived)
+            return ConsoleColor.DarkGray;
+
+        return isCompleted ? ConsoleColor.Green : ConsoleColor.Yellow;
     }
 
     private static ConsoleColor GetDueDateColor(DateOnly? dueDate, bool isCompleted)
@@ -537,7 +675,7 @@ public static class ConsoleUi
         SetColor(ConsoleColor.Green);
         Console.Write($"  {command.PadRight(18)}");
         SetColor(ConsoleColor.Yellow);
-        Console.Write($" {Fit(args, 56).PadRight(56)}");
+        Console.Write($" {Fit(args, 66).PadRight(66)}");
         SetColor(ConsoleColor.Gray);
         Console.WriteLine(description);
         ResetColor();
@@ -563,9 +701,11 @@ public static class ConsoleUi
         return command.Trim().ToLowerInvariant() switch
         {
             "ls" or "-l" => "list",
+            "find" => "search",
             "new" or "-a" => "add",
             "complete" or "finish" or "-c" => "done",
             "undo" or "revert" => "reopen",
+            "unarchive" => "restore",
             "update" or "set" or "-e" or "-u" => "edit",
             "remove" or "rm" or "del" or "-d" => "delete",
             "show" or "info" => "view",
@@ -583,9 +723,14 @@ public static class ConsoleUi
             TaskResult.RemoveSuccess => $"Task {identifier} removed.",
             TaskResult.MarkCompleted => $"Task {identifier} marked completed.",
             TaskResult.UndoSuccess => $"Task {identifier} completion undone.",
+            TaskResult.ArchiveSuccess => $"Task {identifier} archived.",
+            TaskResult.RestoreSuccess => $"Task {identifier} restored.",
             TaskResult.UpdateFailed => $"Failed to update task {identifier}.",
             TaskResult.AlreadyCompleted => $"Task {identifier} is already completed.",
-            TaskResult.NotCompleted => $"Task {identifier} is not completed, nothing to undo.",
+            TaskResult.NotCompleted => $"Task {identifier} is not completed.",
+            TaskResult.AlreadyArchived => $"Task {identifier} is already archived.",
+            TaskResult.NotArchived => $"Task {identifier} is not archived.",
+            TaskResult.NoCompletedTasksToArchive => "No completed active tasks to archive.",
             TaskResult.TaskNotFound => $"Task {identifier} not found.",
             TaskResult.DuplicateTitle => $"Task title '{identifier}' already exists.",
             TaskResult.InvalidPriority => "Priority must be low, normal, or high.",

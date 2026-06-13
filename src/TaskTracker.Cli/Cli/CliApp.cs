@@ -17,7 +17,7 @@ public class CliApp
     {
         if (args.Length == 0)
         {
-            ShowTasks(completedFilter: null, priorityFilter: null, dueFilter: null);
+            ShowTasks(completedFilter: null, priorityFilter: null, dueFilter: null, archivedFilter: false);
             return;
         }
 
@@ -44,6 +44,11 @@ public class CliApp
                 HandleList(commandArgs);
                 break;
 
+            case "search":
+            case "find":
+                HandleSearch(commandArgs);
+                break;
+
             case "add":
             case "new":
             case "-a": // Legacy alias. Kept for backwards compatibility.
@@ -61,6 +66,15 @@ public class CliApp
             case "undo":
             case "revert":
                 HandleStatusUpdate(commandArgs, completed: false, usage: "tasktracker reopen <id>");
+                break;
+
+            case "archive":
+                HandleArchive(commandArgs);
+                break;
+
+            case "restore":
+            case "unarchive":
+                HandleRestore(commandArgs);
                 break;
 
             case "edit":
@@ -103,6 +117,7 @@ public class CliApp
         bool? completedFilter = null;
         string? priorityFilter = null;
         string? dueFilter = null;
+        bool? archivedFilter = false;
 
         for (int index = 0; index < args.Length; index++)
         {
@@ -138,7 +153,7 @@ public class CliApp
             {
                 if (!CliArguments.TryReadOptionValue(args, index + 1, out string? value))
                 {
-                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
+                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--archived | --include-archived] [--priority <low|normal|high>] [--due <filter>]");
                     return;
                 }
 
@@ -154,7 +169,7 @@ public class CliApp
             {
                 if (!CliArguments.TryReadOptionValue(args, index + 1, out string? value))
                 {
-                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <today|tomorrow|week|overdue|none|yyyy-mm-dd>]");
+                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--archived | --include-archived] [--priority <low|normal|high>] [--due <today|tomorrow|week|overdue|none|yyyy-mm-dd>]");
                     return;
                 }
 
@@ -170,18 +185,70 @@ public class CliApp
             {
                 dueFilter = TaskDueDate.Overdue;
             }
+            else if (option is "--archived")
+            {
+                archivedFilter = true;
+            }
+            else if (option is "--include-archived")
+            {
+                archivedFilter = null;
+            }
             else if (option is "--all" or "-a")
             {
                 completedFilter = null;
             }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
+                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--archived | --include-archived] [--priority <low|normal|high>] [--due <filter>]");
                 return;
             }
         }
 
-        ShowTasks(completedFilter, priorityFilter, dueFilter);
+        ShowTasks(completedFilter, priorityFilter, dueFilter, archivedFilter);
+    }
+
+    private void HandleSearch(string[] args)
+    {
+        const string usage = "tasktracker search <text> [--archived | --include-archived]";
+
+        if (args.Length == 0)
+        {
+            ConsoleUi.ShowUsage(usage);
+            return;
+        }
+
+        string? searchText = CliArguments.ReadValueUntilOption(args, 0, out int nextIndex);
+        bool? archivedFilter = false;
+
+        while (nextIndex < args.Length)
+        {
+            string option = args[nextIndex].Trim().ToLowerInvariant();
+
+            if (option is "--archived")
+            {
+                archivedFilter = true;
+                nextIndex++;
+            }
+            else if (option is "--include-archived")
+            {
+                archivedFilter = null;
+                nextIndex++;
+            }
+            else
+            {
+                ConsoleUi.ShowUsage(usage);
+                return;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            ConsoleUi.ShowUsage(usage);
+            return;
+        }
+
+        List<TaskItem> tasks = _service.SearchTasks(searchText, archivedFilter);
+        ConsoleUi.ShowSearchResults(tasks, searchText, archivedFilter);
     }
 
     private void HandleAdd(string[] args)
@@ -262,6 +329,33 @@ public class CliApp
             return;
 
         TaskResult result = _service.UpdateStatus(id, completed);
+        ConsoleUi.ShowResult(result, id.ToString());
+    }
+
+    private void HandleArchive(string[] args)
+    {
+        const string usage = "tasktracker archive [id]";
+
+        if (args.Length == 0 || args[0].Equals("completed", StringComparison.OrdinalIgnoreCase))
+        {
+            int archivedCount = _service.ArchiveCompletedTasks();
+            ConsoleUi.ShowArchiveCompletedResult(archivedCount);
+            return;
+        }
+
+        if (!TryReadIdOrShowUsage(args, usage, out int id))
+            return;
+
+        TaskResult result = _service.ArchiveTask(id);
+        ConsoleUi.ShowResult(result, id.ToString());
+    }
+
+    private void HandleRestore(string[] args)
+    {
+        if (!TryReadIdOrShowUsage(args, "tasktracker restore <id>", out int id))
+            return;
+
+        TaskResult result = _service.RestoreTask(id);
         ConsoleUi.ShowResult(result, id.ToString());
     }
 
@@ -372,10 +466,10 @@ public class CliApp
         ConsoleUi.ShowTaskDetails(task);
     }
 
-    private void ShowTasks(bool? completedFilter, string? priorityFilter, string? dueFilter)
+    private void ShowTasks(bool? completedFilter, string? priorityFilter, string? dueFilter, bool? archivedFilter)
     {
-        List<TaskItem> tasks = _service.GetTasksByStatus(completedFilter, priorityFilter, dueFilter);
-        ConsoleUi.ShowTaskList(tasks, completedFilter, priorityFilter, dueFilter);
+        List<TaskItem> tasks = _service.GetTasksByStatus(completedFilter, priorityFilter, dueFilter, archivedFilter);
+        ConsoleUi.ShowTaskList(tasks, completedFilter, priorityFilter, dueFilter, archivedFilter);
     }
 
     private static void ShowHelp(string[] args)

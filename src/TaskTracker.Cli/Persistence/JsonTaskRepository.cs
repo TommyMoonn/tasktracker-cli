@@ -71,6 +71,7 @@ public class JsonTaskRepository : ITaskRepository
             : TaskPriority.Normal;
         existing.DueDate = task.DueDate;
         existing.IsCompleted = task.IsCompleted;
+        existing.IsArchived = task.IsArchived;
 
         Save();
         return true;

@@ -14,5 +14,10 @@ public enum TaskResult
     UpdateFailed,
     AlreadyCompleted,
     NotCompleted,
-    UndoSuccess
+    UndoSuccess,
+    ArchiveSuccess,
+    RestoreSuccess,
+    AlreadyArchived,
+    NotArchived,
+    NoCompletedTasksToArchive
 }
