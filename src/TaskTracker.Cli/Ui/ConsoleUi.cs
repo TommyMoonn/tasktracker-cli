@@ -605,10 +605,10 @@ public static class ConsoleUi
         if (value.Length <= width)
             return value;
 
-        if (width <= 1)
-            return "...";
+        if (width <= 3)
+            return value[..width];
 
-        return width <= 3 ? value[..width] : value[..(width - 3)] + "...";
+        return value[..(width - 3)] + "...";
     }
 
     private static int GetSafeWidth()
