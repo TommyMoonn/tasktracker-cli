@@ -17,13 +17,13 @@ public static class ConsoleUi
         Console.WriteLine();
 
         WriteSection("Core commands");
-        WriteCommand("list", "[--all | --open | --done] [--priority <priority>]", "List tasks");
-        WriteCommand("add", "<title> [--note <note>] [--priority <priority>]", "Add a task");
+        WriteCommand("list", "[--all | --open | --done] [--priority <priority>] [--due <filter>]", "List tasks");
+        WriteCommand("add", "<title> [--note <note>] [--priority <priority>] [--due <date>]", "Add a task");
         WriteCommand("view", "<id>", "Show one task");
         WriteCommand("fun", "", "Show the TaskTracker ASCII banner");
         WriteCommand("done", "<id>", "Mark a task as done");
         WriteCommand("reopen", "<id>", "Move a task back to open");
-        WriteCommand("edit", "<id> [--title <title>] [--note <note>] [--priority <priority>]", "Edit task details");
+        WriteCommand("edit", "<id> [--title <title>] [--note <note>] [--priority <priority>] [--due <date|none>]", "Edit task details");
         WriteCommand("delete", "<id>", "Delete a task");
 
         Console.WriteLine();
@@ -31,6 +31,12 @@ public static class ConsoleUi
         WriteMuted("  low, normal, high");
         WriteMuted("  Short forms: l, n, h");
         WriteMuted("  Also accepted: medium, med, m -> normal");
+
+        Console.WriteLine();
+        WriteSection("Due date values");
+        WriteMuted("  Add/edit: today, tomorrow, yyyy-mm-dd");
+        WriteMuted("  Clear due date: none, clear, remove");
+        WriteMuted("  List filters: today, tomorrow, week, overdue, none, yyyy-mm-dd");
 
         Console.WriteLine();
         WriteSection("Aliases");
@@ -44,8 +50,9 @@ public static class ConsoleUi
 
         Console.WriteLine();
         WriteSection("Examples");
-        WriteMuted("  tasktracker add Buy groceries --priority high --note carrots potatoes oil");
-        WriteMuted("  tasktracker list --open --priority high");
+        WriteMuted("  tasktracker add Buy groceries --priority high --due tomorrow --note carrots potatoes oil");
+        WriteMuted("  tasktracker list --open --priority high --due week");
+        WriteMuted("  tasktracker list --overdue");
         WriteMuted("  tasktracker done 3");
         WriteMuted("  tasktracker edit 3 --priority normal");
         WriteMuted("  tasktracker view 3");
@@ -62,25 +69,28 @@ public static class ConsoleUi
         switch (command)
         {
             case "list":
-                ShowHeader("tasktracker list", "List tasks with optional status and priority filters.");
-                WriteMuted("Usage: tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
+                ShowHeader("tasktracker list", "List tasks with optional status, priority, and due date filters.");
+                WriteMuted("Usage: tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
                 WriteMuted("Alias: ls");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker list");
                 WriteMuted("  tasktracker list --open");
                 WriteMuted("  tasktracker list --priority high");
-                WriteMuted("  tasktracker ls --done --priority low");
+                WriteMuted("  tasktracker list --due today");
+                WriteMuted("  tasktracker list --overdue");
+                WriteMuted("  tasktracker ls --done --priority low --due week");
                 break;
 
             case "add":
                 ShowHeader("tasktracker add", "Create a new task.");
-                WriteMuted("Usage: tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+                WriteMuted("Usage: tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
                 WriteMuted("Alias: new");
                 WriteMuted("Default priority: normal");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker add Buy groceries");
                 WriteMuted("  tasktracker add Buy groceries --priority high");
-                WriteMuted("  tasktracker add Buy groceries --priority high --note carrots potatoes oil");
+                WriteMuted("  tasktracker add Submit report --due 2026-06-20");
+                WriteMuted("  tasktracker add Buy groceries --priority high --due tomorrow --note carrots potatoes oil");
                 break;
 
             case "view":
@@ -116,14 +126,16 @@ public static class ConsoleUi
                 break;
 
             case "edit":
-                ShowHeader("tasktracker edit", "Update a task title, note, or priority.");
-                WriteMuted("Usage: tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>]");
+                ShowHeader("tasktracker edit", "Update a task title, note, priority, or due date.");
+                WriteMuted("Usage: tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>] [--due <date|none>]");
                 WriteMuted("Aliases: update, set");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker edit 2 --title Buy groceries today");
                 WriteMuted("  tasktracker edit 2 --note carrots potatoes oil");
                 WriteMuted("  tasktracker edit 2 --priority high");
-                WriteMuted("  tasktracker edit 2 Buy groceries today --priority normal");
+                WriteMuted("  tasktracker edit 2 --due tomorrow");
+                WriteMuted("  tasktracker edit 2 --due none");
+                WriteMuted("  tasktracker edit 2 Buy groceries today --priority normal --due 2026-06-20");
                 break;
 
             case "delete":
@@ -143,45 +155,13 @@ public static class ConsoleUi
     public static void ShowLogo()
     {
         Console.WriteLine();
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"  ████████╗ █████╗ ███████╗██╗  ██╗");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝");
-
-        SetColor(ConsoleColor.White);
-        Console.WriteLine(@"     ██║   ███████║███████╗█████╔╝ ");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"     ██║   ██╔══██║╚════██║██╔═██╗ ");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ██║   ██║  ██║███████║██║  ██╗");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
-
-        Console.WriteLine();
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"  ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ ");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗");
-
-        SetColor(ConsoleColor.White);
-        Console.WriteLine(@"     ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"     ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
-
+        SetColor(ConsoleColor.Cyan);
+        Console.WriteLine(@"   _______        _    _______             _             ");
+        Console.WriteLine(@"  |__   __|      | |  |__   __|           | |            ");
+        Console.WriteLine(@"     | | __ _ ___| | __  | |_ __ __ _  ___| | _____ _ __ ");
+        Console.WriteLine(@"     | |/ _` / __| |/ /  | | '__/ _` |/ __| |/ / _ \ '__|");
+        Console.WriteLine(@"     | | (_| \__ \   <   | | | | (_| | (__|   <  __/ |   ");
+        Console.WriteLine(@"     |_|\__,_|___/_|\_\  |_|_|  \__,_|\___|_|\_\___|_|   ");
         ResetColor();
 
         Console.WriteLine();
@@ -206,19 +186,10 @@ public static class ConsoleUi
         SetColor(ConsoleColor.DarkGray);
         Console.WriteLine(" ]");
         ResetColor();
-
-        Console.WriteLine();
-        SetColor(ConsoleColor.DarkGray);
-        Console.Write("     by ");
-        ResetColor();
-        SetColor(ConsoleColor.Magenta);
-        Console.WriteLine("@TommyMoonn");
-        ResetColor();
-
         Console.WriteLine();
     }
 
-    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter)
+    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter, string? dueFilter)
     {
         string statusText = completedFilter switch
         {
@@ -227,9 +198,15 @@ public static class ConsoleUi
             _ => "all"
         };
 
-        string subtitle = priorityFilter == null
-            ? $"Showing {statusText} tasks"
-            : $"Showing {statusText} tasks with {TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant()} priority";
+        List<string> filterParts = new() { $"Showing {statusText} tasks" };
+
+        if (priorityFilter != null)
+            filterParts.Add($"{TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant()} priority");
+
+        if (dueFilter != null)
+            filterParts.Add(TaskDueDate.ToFilterDisplayText(dueFilter));
+
+        string subtitle = string.Join(" | ", filterParts);
 
         ShowHeader("Task Board", subtitle);
         ShowSummary(tasks);
@@ -237,7 +214,7 @@ public static class ConsoleUi
         if (tasks.Count == 0)
         {
             Console.WriteLine();
-            WriteEmptyState(completedFilter, priorityFilter);
+            WriteEmptyState(completedFilter, priorityFilter, dueFilter);
             return;
         }
 
@@ -255,6 +232,10 @@ public static class ConsoleUi
 
         WriteSection("Priority");
         WritePriorityLine(task.Priority);
+        Console.WriteLine();
+
+        WriteSection("Due Date");
+        WriteDueDateLine(task.DueDate, task.IsCompleted);
         Console.WriteLine();
 
         WriteSection("Note");
@@ -302,6 +283,11 @@ public static class ConsoleUi
         WriteStatusBox("Invalid input", "Priority must be low, normal, or high.", ConsoleColor.Red);
     }
 
+    public static void ShowInvalidDueDate()
+    {
+        WriteStatusBox("Invalid input", "Due date must be today, tomorrow, yyyy-mm-dd, or none when editing.", ConsoleColor.Red);
+    }
+
     public static void ShowInvalidCommand(string command)
     {
         ShowHeader("Unknown Command", $"'{command}' is not a valid tasktracker command.");
@@ -329,6 +315,7 @@ public static class ConsoleUi
         int completed = tasks.Count(t => t.IsCompleted);
         int pending = tasks.Count - completed;
         int highPriority = tasks.Count(t => TaskPriority.TryNormalize(t.Priority, out string priority) && priority == TaskPriority.High);
+        int overdue = tasks.Count(t => TaskDueDate.IsOverdue(t.DueDate, t.IsCompleted));
 
         Console.WriteLine();
         WriteMetric("Total", tasks.Count, ConsoleColor.Cyan);
@@ -338,6 +325,8 @@ public static class ConsoleUi
         WriteMetric("Open", pending, ConsoleColor.Yellow);
         Console.Write("  ");
         WriteMetric("High", highPriority, ConsoleColor.Red);
+        Console.Write("  ");
+        WriteMetric("Overdue", overdue, ConsoleColor.Magenta);
         Console.WriteLine();
     }
 
@@ -358,40 +347,45 @@ public static class ConsoleUi
         int idWidth = 4;
         int statusWidth = 8;
         int priorityWidth = 8;
-        int fixedWidth = idWidth + statusWidth + priorityWidth + 12;
+        int dueWidth = 12;
+        int fixedWidth = idWidth + statusWidth + priorityWidth + dueWidth + 15;
         int remaining = Math.Max(30, width - fixedWidth);
-        int titleWidth = Math.Max(18, (int)(remaining * 0.42));
-        int noteWidth = Math.Max(20, remaining - titleWidth);
+        int titleWidth = Math.Max(18, (int)(remaining * 0.48));
+        int noteWidth = Math.Max(16, remaining - titleWidth);
 
-        WriteTableBorder('┌', '┬', '┐', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
-        WriteTableRow("ID", "Status", "Priority", "Title", "Note", idWidth, statusWidth, priorityWidth, titleWidth, noteWidth, isHeader: true);
-        WriteTableBorder('├', '┼', '┤', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
+        WriteTableBorder('┌', '┬', '┐', idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth);
+        WriteTableRow("ID", "Status", "Priority", "Due", "Title", "Note", idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth, isHeader: true);
+        WriteTableBorder('├', '┼', '┤', idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth);
 
         foreach (var task in tasks)
         {
             string statusText = task.IsCompleted ? "Done" : "Open";
             string priorityText = TaskPriority.ToDisplayName(task.Priority);
+            string dueText = TaskDueDate.ToDisplayText(task.DueDate);
             string note = string.IsNullOrWhiteSpace(task.Note) ? "-" : task.Note;
-            WriteTableRow(task.Id.ToString(), statusText, priorityText, task.Title, note, idWidth, statusWidth, priorityWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted, priority: task.Priority);
+            WriteTableRow(task.Id.ToString(), statusText, priorityText, dueText, task.Title, note, idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted, priority: task.Priority, dueDate: task.DueDate);
         }
 
-        WriteTableBorder('└', '┴', '┘', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
+        WriteTableBorder('└', '┴', '┘', idWidth, statusWidth, priorityWidth, dueWidth, titleWidth, noteWidth);
     }
 
     private static void WriteTableRow(
         string id,
         string status,
         string priorityText,
+        string dueText,
         string title,
         string note,
         int idWidth,
         int statusWidth,
         int priorityWidth,
+        int dueWidth,
         int titleWidth,
         int noteWidth,
         bool isHeader = false,
         bool isCompleted = false,
-        string? priority = null)
+        string? priority = null,
+        DateOnly? dueDate = null)
     {
         SetColor(ConsoleColor.DarkGray);
         Console.Write("│ ");
@@ -410,6 +404,12 @@ public static class ConsoleUi
 
         SetColor(isHeader ? ConsoleColor.Cyan : GetPriorityColor(priority));
         Console.Write(Fit(priorityText, priorityWidth).PadRight(priorityWidth));
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write(" │ ");
+
+        SetColor(isHeader ? ConsoleColor.Cyan : GetDueDateColor(dueDate, isCompleted));
+        Console.Write(Fit(dueText, dueWidth).PadRight(dueWidth));
 
         SetColor(ConsoleColor.DarkGray);
         Console.Write(" │ ");
@@ -456,11 +456,15 @@ public static class ConsoleUi
         ResetColor();
     }
 
-    private static void WriteEmptyState(bool? completedFilter, string? priorityFilter)
+    private static void WriteEmptyState(bool? completedFilter, string? priorityFilter, string? dueFilter)
     {
         string message;
 
-        if (priorityFilter != null)
+        if (dueFilter != null)
+        {
+            message = $"No tasks found that are {TaskDueDate.ToFilterDisplayText(dueFilter)}.";
+        }
+        else if (priorityFilter != null)
         {
             string priorityText = TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant();
             message = $"No tasks found with {priorityText} priority.";
@@ -483,6 +487,29 @@ public static class ConsoleUi
         SetColor(GetPriorityColor(priority));
         Console.WriteLine($"  {TaskPriority.ToDisplayName(priority)}");
         ResetColor();
+    }
+
+    private static void WriteDueDateLine(DateOnly? dueDate, bool isCompleted)
+    {
+        SetColor(GetDueDateColor(dueDate, isCompleted));
+        Console.WriteLine($"  {TaskDueDate.ToDisplayText(dueDate)}");
+        ResetColor();
+    }
+
+    private static ConsoleColor GetDueDateColor(DateOnly? dueDate, bool isCompleted)
+    {
+        if (dueDate == null)
+            return ConsoleColor.DarkGray;
+
+        if (TaskDueDate.IsOverdue(dueDate, isCompleted))
+            return ConsoleColor.Magenta;
+
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+
+        if (dueDate == today)
+            return ConsoleColor.Yellow;
+
+        return ConsoleColor.Gray;
     }
 
     private static ConsoleColor GetPriorityColor(string? priority)
@@ -562,6 +589,7 @@ public static class ConsoleUi
             TaskResult.TaskNotFound => $"Task {identifier} not found.",
             TaskResult.DuplicateTitle => $"Task title '{identifier}' already exists.",
             TaskResult.InvalidPriority => "Priority must be low, normal, or high.",
+            TaskResult.InvalidDueDate => "Due date must be today, tomorrow, yyyy-mm-dd, or none when editing.",
             TaskResult.EmptyTitle => "Task title cannot be empty.",
             _ => "Unknown error."
         };

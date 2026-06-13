@@ -69,6 +69,7 @@ public class JsonTaskRepository : ITaskRepository
         existing.Priority = TaskPriority.TryNormalize(task.Priority, out string priority)
             ? priority
             : TaskPriority.Normal;
+        existing.DueDate = task.DueDate;
         existing.IsCompleted = task.IsCompleted;
 
         Save();

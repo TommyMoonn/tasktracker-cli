@@ -13,6 +13,7 @@ namespace TaskTracker.Cli.Services
         EmptyTitle,
         DuplicateTitle,
         InvalidPriority,
+        InvalidDueDate,
         UpdateFailed,
         AlreadyCompleted,
         NotCompleted,
@@ -28,7 +29,7 @@ namespace TaskTracker.Cli.Services
             _repo = repo;
         }
 
-        public TaskResult AddTask(string title, string note, string priority = TaskPriority.Normal)
+        public TaskResult AddTask(string title, string note, string priority = TaskPriority.Normal, DateOnly? dueDate = null)
         {
             var tasks = _repo.GetAll();
 
@@ -52,6 +53,7 @@ namespace TaskTracker.Cli.Services
                 Title = title,
                 Note = note,
                 Priority = normalizedPriority,
+                DueDate = dueDate,
                 IsCompleted = false
             };
 
@@ -60,7 +62,7 @@ namespace TaskTracker.Cli.Services
             return TaskResult.AddSuccess;
         }
 
-        public TaskResult UpdateTask(int id, string? title, string? note, string? priority = null)
+        public TaskResult UpdateTask(int id, string? title, string? note, string? priority = null, DateOnly? dueDate = null, bool updateDueDate = false)
         {
             var task = _repo.GetById(id);
             if (task == null)
@@ -89,6 +91,9 @@ namespace TaskTracker.Cli.Services
                 task.Priority = normalizedPriority;
             }
 
+            if (updateDueDate)
+                task.DueDate = dueDate;
+
             bool result = _repo.Update(task);
             if (!result)
                 return TaskResult.UpdateFailed;
@@ -100,7 +105,7 @@ namespace TaskTracker.Cli.Services
 
         public List<TaskItem> GetTasks() => _repo.GetAll();
 
-        public List<TaskItem> GetTasksByStatus(bool? isCompleted = null, string? priority = null)
+        public List<TaskItem> GetTasksByStatus(bool? isCompleted = null, string? priority = null, string? dueFilter = null)
         {
             var allTasks = _repo.GetAll();
             IEnumerable<TaskItem> query = allTasks;
@@ -114,6 +119,26 @@ namespace TaskTracker.Cli.Services
                     return new List<TaskItem>();
 
                 query = query.Where(t => TaskPriority.TryNormalize(t.Priority, out string taskPriority) && taskPriority == normalizedPriority);
+            }
+
+            if (dueFilter != null)
+            {
+                if (!TaskDueDate.TryNormalizeFilter(dueFilter, out string normalizedDueFilter))
+                    return new List<TaskItem>();
+
+                DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+
+                query = normalizedDueFilter switch
+                {
+                    TaskDueDate.Today => query.Where(t => t.DueDate == today),
+                    TaskDueDate.Tomorrow => query.Where(t => t.DueDate == today.AddDays(1)),
+                    TaskDueDate.Week => query.Where(t => t.DueDate != null && t.DueDate.Value >= today && t.DueDate.Value <= today.AddDays(7)),
+                    TaskDueDate.Overdue => query.Where(t => TaskDueDate.IsOverdue(t.DueDate, t.IsCompleted)),
+                    TaskDueDate.None => query.Where(t => t.DueDate == null),
+                    _ => DateOnly.TryParse(normalizedDueFilter, out DateOnly exactDate)
+                        ? query.Where(t => t.DueDate == exactDate)
+                        : Enumerable.Empty<TaskItem>()
+                };
             }
 
             return query.ToList();

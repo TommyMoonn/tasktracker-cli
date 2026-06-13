@@ -18,7 +18,7 @@ public class Program
 
         if (args.Length == 0)
         {
-            ShowTasks(service, completedFilter: null, priorityFilter: null);
+            ShowTasks(service, completedFilter: null, priorityFilter: null, dueFilter: null);
             return;
         }
 
@@ -103,6 +103,7 @@ public class Program
     {
         bool? completedFilter = null;
         string? priorityFilter = null;
+        string? dueFilter = null;
 
         for (int index = 0; index < args.Length; index++)
         {
@@ -138,7 +139,7 @@ public class Program
             {
                 if (!TryReadOptionValue(args, index + 1, out string? value))
                 {
-                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
+                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
                     return;
                 }
 
@@ -150,31 +151,52 @@ public class Program
 
                 index++;
             }
+            else if (option is "--due")
+            {
+                if (!TryReadOptionValue(args, index + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <today|tomorrow|week|overdue|none|yyyy-mm-dd>]");
+                    return;
+                }
+
+                if (!TaskDueDate.TryNormalizeFilter(value, out dueFilter))
+                {
+                    ConsoleUi.ShowInvalidDueDate();
+                    return;
+                }
+
+                index++;
+            }
+            else if (option is "--overdue")
+            {
+                dueFilter = TaskDueDate.Overdue;
+            }
             else if (option is "--all" or "-a")
             {
                 completedFilter = null;
             }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
+                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>] [--due <filter>]");
                 return;
             }
         }
 
-        ShowTasks(service, completedFilter, priorityFilter);
+        ShowTasks(service, completedFilter, priorityFilter, dueFilter);
     }
 
     private static void HandleAdd(TaskServices service, string[] args)
     {
         if (args.Length == 0)
         {
-            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
             return;
         }
 
         string? title = ReadValueUntilOption(args, 0, out int nextIndex);
         string note = string.Empty;
         string priority = TaskPriority.Normal;
+        DateOnly? dueDate = null;
 
         while (nextIndex < args.Length)
         {
@@ -188,7 +210,7 @@ public class Program
             {
                 if (!TryReadOptionValue(args, nextIndex + 1, out string? value))
                 {
-                    ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+                    ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
                     return;
                 }
 
@@ -200,20 +222,36 @@ public class Program
 
                 nextIndex += 2;
             }
+            else if (option is "--due")
+            {
+                if (!TryReadOptionValue(args, nextIndex + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
+                    return;
+                }
+
+                if (!TaskDueDate.TryParse(value, out dueDate, out bool clearDueDate) || clearDueDate)
+                {
+                    ConsoleUi.ShowInvalidDueDate();
+                    return;
+                }
+
+                nextIndex += 2;
+            }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+                ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
                 return;
             }
         }
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd>]");
             return;
         }
 
-        TaskResult result = service.AddTask(title, note, priority);
+        TaskResult result = service.AddTask(title, note, priority, dueDate);
         ConsoleUi.ShowResult(result, title);
     }
 
@@ -228,7 +266,7 @@ public class Program
 
     private static void HandleEdit(TaskServices service, string[] args)
     {
-        const string usage = "tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>]";
+        const string usage = "tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>] [--due <today|tomorrow|yyyy-mm-dd|none>]";
 
         if (!TryReadId(args, usage, out int id))
             return;
@@ -236,6 +274,8 @@ public class Program
         string? newTitle = null;
         string? newNote = null;
         string? newPriority = null;
+        DateOnly? newDueDate = null;
+        bool updateDueDate = false;
         int index = 1;
 
         if (index < args.Length && !IsOption(args[index]) && !IsNamedEditOption(args[index]))
@@ -269,6 +309,26 @@ public class Program
 
                 index += 2;
             }
+            else if (option is "--due" or "due")
+            {
+                if (!TryReadOptionValue(args, index + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage(usage);
+                    return;
+                }
+
+                if (!TaskDueDate.TryParse(value, out newDueDate, out bool clearDueDate))
+                {
+                    ConsoleUi.ShowInvalidDueDate();
+                    return;
+                }
+
+                if (clearDueDate)
+                    newDueDate = null;
+
+                updateDueDate = true;
+                index += 2;
+            }
             else
             {
                 ConsoleUi.ShowUsage(usage);
@@ -276,13 +336,13 @@ public class Program
             }
         }
 
-        if (newTitle == null && newNote == null && newPriority == null)
+        if (newTitle == null && newNote == null && newPriority == null && !updateDueDate)
         {
             ConsoleUi.ShowUsage(usage);
             return;
         }
 
-        TaskResult result = service.UpdateTask(id, newTitle, newNote, newPriority);
+        TaskResult result = service.UpdateTask(id, newTitle, newNote, newPriority, newDueDate, updateDueDate);
         ConsoleUi.ShowResult(result, id.ToString());
     }
 
@@ -311,10 +371,10 @@ public class Program
         ConsoleUi.ShowTaskDetails(task);
     }
 
-    private static void ShowTasks(TaskServices service, bool? completedFilter, string? priorityFilter)
+    private static void ShowTasks(TaskServices service, bool? completedFilter, string? priorityFilter, string? dueFilter)
     {
-        List<TaskItem> tasks = service.GetTasksByStatus(completedFilter, priorityFilter);
-        ConsoleUi.ShowTaskList(tasks, completedFilter, priorityFilter);
+        List<TaskItem> tasks = service.GetTasksByStatus(completedFilter, priorityFilter, dueFilter);
+        ConsoleUi.ShowTaskList(tasks, completedFilter, priorityFilter, dueFilter);
     }
 
     private static void ShowHelp(string[] args)
@@ -374,7 +434,7 @@ public class Program
     private static bool IsNamedEditOption(string value)
     {
         string option = value.Trim().ToLowerInvariant();
-        return option is "title" or "note" or "priority";
+        return option is "title" or "note" or "priority" or "due";
     }
 
     private static bool IsHelpCommand(string command) => command is "help" or "--help" or "-h";
