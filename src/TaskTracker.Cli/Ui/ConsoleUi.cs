@@ -9,22 +9,114 @@ public static class ConsoleUi
 
     public static void ShowHelpMenu()
     {
-        ShowHeader("TaskTracker CLI", "A tiny terminal task manager for quick daily tracking.");
+        ShowHeader("TaskTracker CLI", "Fast task tracking from the terminal.");
 
         WriteSection("Usage");
-        WriteMuted("  tasktracker <command> [options]");
+        WriteMuted("  tasktracker [command] [options]");
+        WriteMuted("  tasktracker                 List all tasks");
         Console.WriteLine();
 
-        WriteSection("Commands");
-        WriteCommand("list, ls, -l", "[--completed | -c] [--pending | -p]", "List tasks");
-        WriteCommand("add, -a", "<title> [--note | -n] <note>", "Add a new task");
-        WriteCommand("complete, -c", "<id>", "Mark a task as completed");
-        WriteCommand("undo, revert", "<id>", "Undo task completion");
-        WriteCommand("update, edit, -u", "<id> [title | -t] <title> [note | -n] <note>", "Update task details");
-        WriteCommand("remove, delete, -d", "<id>", "Delete task by ID");
+        WriteSection("Core commands");
+        WriteCommand("list", "[--all | --open | --done]", "List tasks");
+        WriteCommand("add", "<title> [--note <note>]", "Add a task");
+        WriteCommand("view", "<id>", "Show one task");
+        WriteCommand("done", "<id>", "Mark a task as done");
+        WriteCommand("reopen", "<id>", "Move a task back to open");
+        WriteCommand("edit", "<id> [--title <title>] [--note <note>]", "Edit task details");
+        WriteCommand("delete", "<id>", "Delete a task");
 
         Console.WriteLine();
-        WriteTip("Wrap titles or notes in quotes when they contain spaces.");
+        WriteSection("Aliases");
+        WriteMuted("  list: ls");
+        WriteMuted("  add: new");
+        WriteMuted("  done: complete, finish");
+        WriteMuted("  reopen: undo, revert");
+        WriteMuted("  edit: update, set");
+        WriteMuted("  delete: remove, rm, del");
+
+        Console.WriteLine();
+        WriteSection("Examples");
+        WriteMuted("  tasktracker add Buy groceries --note carrots potatoes oil");
+        WriteMuted("  tasktracker list --open");
+        WriteMuted("  tasktracker done 3");
+        WriteMuted("  tasktracker edit 3 --title Open task test --note this is a note");
+        WriteMuted("  tasktracker view 3");
+
+        Console.WriteLine();
+        WriteTip("Quotes are optional for simple input, but still useful when your shell needs exact spacing.");
+    }
+
+    public static void ShowCommandHelp(string command)
+    {
+        command = NormalizeCommand(command);
+
+        switch (command)
+        {
+            case "list":
+                ShowHeader("tasktracker list", "List tasks with optional status filters.");
+                WriteMuted("Usage: tasktracker list [--all | --open | --done]");
+                WriteMuted("Alias: ls");
+                WriteMuted("Examples:");
+                WriteMuted("  tasktracker list");
+                WriteMuted("  tasktracker list --open");
+                WriteMuted("  tasktracker ls --done");
+                break;
+
+            case "add":
+                ShowHeader("tasktracker add", "Create a new task.");
+                WriteMuted("Usage: tasktracker add <title> [--note <note>]");
+                WriteMuted("Alias: new");
+                WriteMuted("Examples:");
+                WriteMuted("  tasktracker add Buy groceries");
+                WriteMuted("  tasktracker add Buy groceries --note carrots potatoes oil");
+                break;
+
+            case "view":
+                ShowHeader("tasktracker view", "Show the full details for one task.");
+                WriteMuted("Usage: tasktracker view <id>");
+                WriteMuted("Aliases: show, info");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker view 2");
+                break;
+
+            case "done":
+                ShowHeader("tasktracker done", "Mark a task as completed.");
+                WriteMuted("Usage: tasktracker done <id>");
+                WriteMuted("Aliases: complete, finish");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker done 2");
+                break;
+
+            case "reopen":
+                ShowHeader("tasktracker reopen", "Move a completed task back to open.");
+                WriteMuted("Usage: tasktracker reopen <id>");
+                WriteMuted("Aliases: undo, revert");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker reopen 2");
+                break;
+
+            case "edit":
+                ShowHeader("tasktracker edit", "Update a task title or note.");
+                WriteMuted("Usage: tasktracker edit <id> [--title <title>] [--note <note>]");
+                WriteMuted("Aliases: update, set");
+                WriteMuted("Examples:");
+                WriteMuted("  tasktracker edit 2 --title Buy groceries today");
+                WriteMuted("  tasktracker edit 2 --note carrots potatoes oil");
+                WriteMuted("  tasktracker edit 2 Buy groceries today --note carrots potatoes oil");
+                break;
+
+            case "delete":
+                ShowHeader("tasktracker delete", "Delete a task by ID.");
+                WriteMuted("Usage: tasktracker delete <id>");
+                WriteMuted("Aliases: remove, rm, del");
+                WriteMuted("Example:");
+                WriteMuted("  tasktracker delete 2");
+                break;
+
+            default:
+                ShowInvalidCommand(command);
+                break;
+        }
     }
 
     public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter)
@@ -48,6 +140,19 @@ public static class ConsoleUi
 
         Console.WriteLine();
         WriteTaskTable(tasks);
+    }
+
+    public static void ShowTaskDetails(TaskItem task)
+    {
+        ShowHeader($"Task #{task.Id}", task.IsCompleted ? "Status: Done" : "Status: Open");
+
+        WriteSection("Title");
+        Console.WriteLine($"  {task.Title}");
+        Console.WriteLine();
+
+        WriteSection("Note");
+        string note = string.IsNullOrWhiteSpace(task.Note) ? "-" : task.Note;
+        Console.WriteLine($"  {note}");
     }
 
     public static void ShowResult(TaskResult result, string identifier)
@@ -268,6 +373,21 @@ public static class ConsoleUi
         SetColor(ConsoleColor.DarkGray);
         Console.WriteLine(message);
         ResetColor();
+    }
+
+    private static string NormalizeCommand(string command)
+    {
+        return command.Trim().ToLowerInvariant() switch
+        {
+            "ls" or "-l" => "list",
+            "new" or "-a" => "add",
+            "complete" or "finish" or "-c" => "done",
+            "undo" or "revert" => "reopen",
+            "update" or "set" or "-e" or "-u" => "edit",
+            "remove" or "rm" or "del" or "-d" => "delete",
+            "show" or "info" => "view",
+            _ => command.Trim().ToLowerInvariant()
+        };
     }
 
     private static string GetMessage(TaskResult result, string identifier)

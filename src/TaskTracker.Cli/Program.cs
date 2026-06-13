@@ -18,149 +18,271 @@ public class Program
 
         if (args.Length == 0)
         {
-            ConsoleUi.ShowHelpMenu();
+            ShowTasks(service, completedFilter: null);
             return;
         }
 
-        switch (args[0])
-        {
-            case "help":
-            case "--help":
-            case "-h":
-                ConsoleUi.ShowHelpMenu();
-                break;
+        string command = args[0].Trim().ToLowerInvariant();
+        string[] commandArgs = args.Skip(1).ToArray();
 
+        if (IsHelpCommand(command))
+        {
+            ShowHelp(commandArgs);
+            return;
+        }
+
+        if (commandArgs.Any(IsHelpOption))
+        {
+            ConsoleUi.ShowCommandHelp(command);
+            return;
+        }
+
+        switch (command)
+        {
             case "list":
             case "ls":
-            case "-l":
-                bool? showCompleted = null;
-
-                if (args.Length > 1)
-                {
-                    if (args[1].Equals("-c") || args[1].Equals("--completed"))
-                        showCompleted = true;
-                    else if (args[1].Equals("-p") || args[1].Equals("--pending"))
-                        showCompleted = false;
-                }
-
-                List<TaskItem> tasks = service.GetTasksByStatus(showCompleted);
-                ConsoleUi.ShowTaskList(tasks, showCompleted);
+            case "-l": // Legacy alias. Kept for backwards compatibility.
+                HandleList(service, commandArgs);
                 break;
 
             case "add":
-            case "-a":
-                if (args.Length < 2)
-                {
-                    ConsoleUi.ShowUsage("tasktracker add <title> [--note | -n] <note>");
-                    return;
-                }
-
-                string title = args[1];
-                string note = string.Empty;
-
-                if (args.Length >= 4 && (args[2] == "-n" || args[2] == "--note"))
-                    note = args[3];
-
-                TaskResult addResult = service.AddTask(title, note);
-                ConsoleUi.ShowResult(addResult, title);
+            case "new":
+            case "-a": // Legacy alias. Kept for backwards compatibility.
+                HandleAdd(service, commandArgs);
                 break;
 
+            case "done":
             case "complete":
-            case "-c":
-                if (args.Length < 2)
-                {
-                    ConsoleUi.ShowUsage("tasktracker complete <id>");
-                    return;
-                }
-
-                if (!int.TryParse(args[1], out int completeId))
-                {
-                    ConsoleUi.ShowInvalidId();
-                    return;
-                }
-
-                TaskResult markCompleteResult = service.UpdateStatus(completeId, true);
-                ConsoleUi.ShowResult(markCompleteResult, args[1]);
+            case "finish":
+            case "-c": // Legacy alias. Kept for backwards compatibility.
+                HandleStatusUpdate(service, commandArgs, completed: true, usage: "tasktracker done <id>");
                 break;
 
+            case "reopen":
             case "undo":
             case "revert":
-                if (args.Length < 2)
-                {
-                    ConsoleUi.ShowUsage("tasktracker undo <id>");
-                    return;
-                }
-
-                if (!int.TryParse(args[1], out int undoId))
-                {
-                    ConsoleUi.ShowInvalidId();
-                    return;
-                }
-
-                TaskResult undoResult = service.UpdateStatus(undoId, false);
-                ConsoleUi.ShowResult(undoResult, args[1]);
+                HandleStatusUpdate(service, commandArgs, completed: false, usage: "tasktracker reopen <id>");
                 break;
 
-            case "update":
             case "edit":
-            case "-e":
-            case "-u":
-                if (args.Length < 2)
-                {
-                    ConsoleUi.ShowUsage("tasktracker update <id> [title | -t] <newTitle> [note | -n] <newNote>");
-                    return;
-                }
-
-                if (!int.TryParse(args[1], out int updateId))
-                {
-                    ConsoleUi.ShowInvalidId();
-                    return;
-                }
-
-                string? newTitle = null;
-                string? newNote = null;
-
-                for (int i = 2; i < args.Length; i++)
-                {
-                    string option = args[i].Trim();
-
-                    if ((option == "title" || option == "-t") && i + 1 < args.Length)
-                    {
-                        newTitle = args[++i];
-                    }
-                    else if ((option == "note" || option == "-n") && i + 1 < args.Length)
-                    {
-                        newNote = args[++i];
-                    }
-                }
-
-                TaskResult updateResult = service.UpdateTask(updateId, newTitle, newNote);
-                ConsoleUi.ShowResult(updateResult, args[1]);
+            case "update":
+            case "set":
+            case "-e": // Legacy alias. Kept for backwards compatibility.
+            case "-u": // Legacy alias. Kept for backwards compatibility.
+                HandleEdit(service, commandArgs);
                 break;
 
-            case "remove":
             case "delete":
-            case "-d":
-                if (args.Length < 2)
-                {
-                    ConsoleUi.ShowUsage("tasktracker remove <id>");
-                    return;
-                }
+            case "remove":
+            case "rm":
+            case "del":
+            case "-d": // Legacy alias. Kept for backwards compatibility.
+                HandleDelete(service, commandArgs);
+                break;
 
-                if (!int.TryParse(args[1], out int removeId))
-                {
-                    ConsoleUi.ShowInvalidId();
-                    return;
-                }
-
-                TaskResult removeTaskResult = service.RemoveTask(removeId);
-                ConsoleUi.ShowResult(removeTaskResult, args[1]);
+            case "view":
+            case "show":
+            case "info":
+                HandleView(service, commandArgs);
                 break;
 
             default:
-                string argumentString = string.Join(' ', args);
-                ConsoleUi.ShowInvalidCommand(argumentString);
+                ConsoleUi.ShowInvalidCommand(string.Join(' ', args));
                 break;
         }
     }
+
+    private static void HandleList(TaskServices service, string[] args)
+    {
+        bool? completedFilter = null;
+
+        foreach (string arg in args)
+        {
+            string option = arg.Trim().ToLowerInvariant();
+
+            if (option is "--done" or "--completed" or "-c")
+                completedFilter = true;
+            else if (option is "--open" or "--pending" or "-o" or "-p")
+                completedFilter = false;
+            else if (option is "--all" or "-a")
+                completedFilter = null;
+            else
+            {
+                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done]");
+                return;
+            }
+        }
+
+        ShowTasks(service, completedFilter);
+    }
+
+    private static void HandleAdd(TaskServices service, string[] args)
+    {
+        if (args.Length == 0)
+        {
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+            return;
+        }
+
+        string? title = ReadValueUntilOption(args, 0, out int nextIndex);
+        string note = string.Empty;
+
+        while (nextIndex < args.Length)
+        {
+            string option = args[nextIndex].Trim().ToLowerInvariant();
+
+            if (option is "--note" or "-n")
+            {
+                note = ReadValueUntilOption(args, nextIndex + 1, out nextIndex) ?? string.Empty;
+            }
+            else
+            {
+                ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+                return;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+            return;
+        }
+
+        TaskResult result = service.AddTask(title, note);
+        ConsoleUi.ShowResult(result, title);
+    }
+
+    private static void HandleStatusUpdate(TaskServices service, string[] args, bool completed, string usage)
+    {
+        if (!TryReadId(args, usage, out int id))
+            return;
+
+        TaskResult result = service.UpdateStatus(id, completed);
+        ConsoleUi.ShowResult(result, id.ToString());
+    }
+
+    private static void HandleEdit(TaskServices service, string[] args)
+    {
+        if (!TryReadId(args, "tasktracker edit <id> [--title <title>] [--note <note>]", out int id))
+            return;
+
+        string? newTitle = null;
+        string? newNote = null;
+        int index = 1;
+
+        if (index < args.Length && !IsOption(args[index]) && !IsNamedEditOption(args[index]))
+            newTitle = ReadValueUntilOption(args, index, out index);
+
+        while (index < args.Length)
+        {
+            string option = args[index].Trim().ToLowerInvariant();
+
+            if (option is "--title" or "-t" or "title")
+            {
+                newTitle = ReadValueUntilOption(args, index + 1, out index);
+            }
+            else if (option is "--note" or "-n" or "note")
+            {
+                newNote = ReadValueUntilOption(args, index + 1, out index) ?? string.Empty;
+            }
+            else
+            {
+                ConsoleUi.ShowUsage("tasktracker edit <id> [--title <title>] [--note <note>]");
+                return;
+            }
+        }
+
+        if (newTitle == null && newNote == null)
+        {
+            ConsoleUi.ShowUsage("tasktracker edit <id> [--title <title>] [--note <note>]");
+            return;
+        }
+
+        TaskResult result = service.UpdateTask(id, newTitle, newNote);
+        ConsoleUi.ShowResult(result, id.ToString());
+    }
+
+    private static void HandleDelete(TaskServices service, string[] args)
+    {
+        if (!TryReadId(args, "tasktracker delete <id>", out int id))
+            return;
+
+        TaskResult result = service.RemoveTask(id);
+        ConsoleUi.ShowResult(result, id.ToString());
+    }
+
+    private static void HandleView(TaskServices service, string[] args)
+    {
+        if (!TryReadId(args, "tasktracker view <id>", out int id))
+            return;
+
+        TaskItem? task = service.GetTasks().FirstOrDefault(t => t.Id == id);
+
+        if (task == null)
+        {
+            ConsoleUi.ShowResult(TaskResult.TaskNotFound, id.ToString());
+            return;
+        }
+
+        ConsoleUi.ShowTaskDetails(task);
+    }
+
+    private static void ShowTasks(TaskServices service, bool? completedFilter)
+    {
+        List<TaskItem> tasks = service.GetTasksByStatus(completedFilter);
+        ConsoleUi.ShowTaskList(tasks, completedFilter);
+    }
+
+    private static void ShowHelp(string[] args)
+    {
+        if (args.Length == 0)
+            ConsoleUi.ShowHelpMenu();
+        else
+            ConsoleUi.ShowCommandHelp(args[0]);
+    }
+
+    private static bool TryReadId(string[] args, string usage, out int id)
+    {
+        id = 0;
+
+        if (args.Length == 0)
+        {
+            ConsoleUi.ShowUsage(usage);
+            return false;
+        }
+
+        if (!int.TryParse(args[0], out id))
+        {
+            ConsoleUi.ShowInvalidId();
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string? ReadValueUntilOption(string[] args, int startIndex, out int nextIndex)
+    {
+        List<string> values = new();
+        nextIndex = startIndex;
+
+        while (nextIndex < args.Length && !IsOption(args[nextIndex]))
+        {
+            values.Add(args[nextIndex]);
+            nextIndex++;
+        }
+
+        return values.Count == 0 ? null : string.Join(' ', values).Trim();
+    }
+
+    private static bool IsOption(string value) => value.StartsWith('-');
+
+    private static bool IsNamedEditOption(string value)
+    {
+        string option = value.Trim().ToLowerInvariant();
+        return option is "title" or "note";
+    }
+
+    private static bool IsHelpCommand(string command) => command is "help" or "--help" or "-h";
+
+    private static bool IsHelpOption(string arg) => arg is "--help" or "-h";
 }
