@@ -148,8 +148,8 @@ public static class ConsoleUi
 
         foreach (var task in tasks)
         {
-            string statusText = task.IsCompleted ? "✓ Done" : "○ Open";
-            string note = string.IsNullOrWhiteSpace(task.Note) ? "—" : task.Note;
+            string statusText = task.IsCompleted ? "Done" : "Open";
+            string note = string.IsNullOrWhiteSpace(task.Note) ? "-" : task.Note;
             WriteTableRow(task.Id.ToString(), statusText, task.Title, note, idWidth, statusWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted);
         }
 
@@ -300,9 +300,9 @@ public static class ConsoleUi
             return value;
 
         if (width <= 1)
-            return "…";
+            return "...";
 
-        return value[..(width - 1)] + "…";
+        return width <= 3 ? value[..width] : value[..(width - 3)] + "...";
     }
 
     private static int GetSafeWidth()
