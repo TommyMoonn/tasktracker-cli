@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using TaskTracker.Cli.Models;
 
 namespace TaskTracker.Cli.Persistence;
@@ -39,12 +34,21 @@ public class JsonTaskRepository : ITaskRepository
         if (string.IsNullOrWhiteSpace(json))
             return new List<TaskItem>();
 
-        var options = new JsonSerializerOptions()
+        var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
 
-        return JsonSerializer.Deserialize<List<TaskItem>>(json, options) ?? new List<TaskItem>();
+        var tasks = JsonSerializer.Deserialize<List<TaskItem>>(json, options) ?? new List<TaskItem>();
+
+        foreach (var task in tasks)
+        {
+            task.Priority = TaskPriority.TryNormalize(task.Priority, out string priority)
+                ? priority
+                : TaskPriority.Normal;
+        }
+
+        return tasks;
     }
 
     public void Add(TaskItem task)
@@ -62,6 +66,11 @@ public class JsonTaskRepository : ITaskRepository
 
         existing.Title = task.Title;
         existing.Note = task.Note;
+        existing.Priority = TaskPriority.TryNormalize(task.Priority, out string priority)
+            ? priority
+            : TaskPriority.Normal;
+        existing.IsCompleted = task.IsCompleted;
+
         Save();
         return true;
     }
@@ -81,5 +90,4 @@ public class JsonTaskRepository : ITaskRepository
     public TaskItem? GetById(int id) => _tasks.FirstOrDefault(t => t.Id == id);
 
     public List<TaskItem> GetAll() => new List<TaskItem>(_tasks);
-
 }

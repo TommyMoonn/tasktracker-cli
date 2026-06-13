@@ -18,7 +18,7 @@ public class Program
 
         if (args.Length == 0)
         {
-            ShowTasks(service, completedFilter: null);
+            ShowTasks(service, completedFilter: null, priorityFilter: null);
             return;
         }
 
@@ -95,37 +95,79 @@ public class Program
     private static void HandleList(TaskServices service, string[] args)
     {
         bool? completedFilter = null;
+        string? priorityFilter = null;
 
-        foreach (string arg in args)
+        for (int index = 0; index < args.Length; index++)
         {
-            string option = arg.Trim().ToLowerInvariant();
+            string option = args[index].Trim().ToLowerInvariant();
 
             if (option is "--done" or "--completed" or "-c")
+            {
                 completedFilter = true;
-            else if (option is "--open" or "--pending" or "-o" or "-p")
+            }
+            else if (option is "--open" or "--pending" or "-o")
+            {
                 completedFilter = false;
+            }
+            else if (option is "-p")
+            {
+                if (TryReadOptionValue(args, index + 1, out string? value))
+                {
+                    if (!TaskPriority.TryNormalize(value, out priorityFilter))
+                    {
+                        ConsoleUi.ShowInvalidPriority();
+                        return;
+                    }
+
+                    index++;
+                }
+                else
+                {
+                    // Legacy behavior from the previous version: `ls -p` means pending/open.
+                    completedFilter = false;
+                }
+            }
+            else if (option is "--priority")
+            {
+                if (!TryReadOptionValue(args, index + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
+                    return;
+                }
+
+                if (!TaskPriority.TryNormalize(value, out priorityFilter))
+                {
+                    ConsoleUi.ShowInvalidPriority();
+                    return;
+                }
+
+                index++;
+            }
             else if (option is "--all" or "-a")
+            {
                 completedFilter = null;
+            }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done]");
+                ConsoleUi.ShowUsage("tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
                 return;
             }
         }
 
-        ShowTasks(service, completedFilter);
+        ShowTasks(service, completedFilter, priorityFilter);
     }
 
     private static void HandleAdd(TaskServices service, string[] args)
     {
         if (args.Length == 0)
         {
-            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
             return;
         }
 
         string? title = ReadValueUntilOption(args, 0, out int nextIndex);
         string note = string.Empty;
+        string priority = TaskPriority.Normal;
 
         while (nextIndex < args.Length)
         {
@@ -135,20 +177,36 @@ public class Program
             {
                 note = ReadValueUntilOption(args, nextIndex + 1, out nextIndex) ?? string.Empty;
             }
+            else if (option is "--priority" or "-p")
+            {
+                if (!TryReadOptionValue(args, nextIndex + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
+                    return;
+                }
+
+                if (!TaskPriority.TryNormalize(value, out priority))
+                {
+                    ConsoleUi.ShowInvalidPriority();
+                    return;
+                }
+
+                nextIndex += 2;
+            }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+                ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
                 return;
             }
         }
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>]");
+            ConsoleUi.ShowUsage("tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
             return;
         }
 
-        TaskResult result = service.AddTask(title, note);
+        TaskResult result = service.AddTask(title, note, priority);
         ConsoleUi.ShowResult(result, title);
     }
 
@@ -163,11 +221,14 @@ public class Program
 
     private static void HandleEdit(TaskServices service, string[] args)
     {
-        if (!TryReadId(args, "tasktracker edit <id> [--title <title>] [--note <note>]", out int id))
+        const string usage = "tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>]";
+
+        if (!TryReadId(args, usage, out int id))
             return;
 
         string? newTitle = null;
         string? newNote = null;
+        string? newPriority = null;
         int index = 1;
 
         if (index < args.Length && !IsOption(args[index]) && !IsNamedEditOption(args[index]))
@@ -185,20 +246,36 @@ public class Program
             {
                 newNote = ReadValueUntilOption(args, index + 1, out index) ?? string.Empty;
             }
+            else if (option is "--priority" or "-p" or "priority")
+            {
+                if (!TryReadOptionValue(args, index + 1, out string? value))
+                {
+                    ConsoleUi.ShowUsage(usage);
+                    return;
+                }
+
+                if (!TaskPriority.TryNormalize(value, out newPriority))
+                {
+                    ConsoleUi.ShowInvalidPriority();
+                    return;
+                }
+
+                index += 2;
+            }
             else
             {
-                ConsoleUi.ShowUsage("tasktracker edit <id> [--title <title>] [--note <note>]");
+                ConsoleUi.ShowUsage(usage);
                 return;
             }
         }
 
-        if (newTitle == null && newNote == null)
+        if (newTitle == null && newNote == null && newPriority == null)
         {
-            ConsoleUi.ShowUsage("tasktracker edit <id> [--title <title>] [--note <note>]");
+            ConsoleUi.ShowUsage(usage);
             return;
         }
 
-        TaskResult result = service.UpdateTask(id, newTitle, newNote);
+        TaskResult result = service.UpdateTask(id, newTitle, newNote, newPriority);
         ConsoleUi.ShowResult(result, id.ToString());
     }
 
@@ -227,10 +304,10 @@ public class Program
         ConsoleUi.ShowTaskDetails(task);
     }
 
-    private static void ShowTasks(TaskServices service, bool? completedFilter)
+    private static void ShowTasks(TaskServices service, bool? completedFilter, string? priorityFilter)
     {
-        List<TaskItem> tasks = service.GetTasksByStatus(completedFilter);
-        ConsoleUi.ShowTaskList(tasks, completedFilter);
+        List<TaskItem> tasks = service.GetTasksByStatus(completedFilter, priorityFilter);
+        ConsoleUi.ShowTaskList(tasks, completedFilter, priorityFilter);
     }
 
     private static void ShowHelp(string[] args)
@@ -260,6 +337,17 @@ public class Program
         return true;
     }
 
+    private static bool TryReadOptionValue(string[] args, int valueIndex, out string? value)
+    {
+        value = null;
+
+        if (valueIndex >= args.Length || IsOption(args[valueIndex]))
+            return false;
+
+        value = args[valueIndex];
+        return true;
+    }
+
     private static string? ReadValueUntilOption(string[] args, int startIndex, out int nextIndex)
     {
         List<string> values = new();
@@ -279,7 +367,7 @@ public class Program
     private static bool IsNamedEditOption(string value)
     {
         string option = value.Trim().ToLowerInvariant();
-        return option is "title" or "note";
+        return option is "title" or "note" or "priority";
     }
 
     private static bool IsHelpCommand(string command) => command is "help" or "--help" or "-h";

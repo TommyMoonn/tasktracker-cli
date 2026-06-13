@@ -17,13 +17,19 @@ public static class ConsoleUi
         Console.WriteLine();
 
         WriteSection("Core commands");
-        WriteCommand("list", "[--all | --open | --done]", "List tasks");
-        WriteCommand("add", "<title> [--note <note>]", "Add a task");
+        WriteCommand("list", "[--all | --open | --done] [--priority <priority>]", "List tasks");
+        WriteCommand("add", "<title> [--note <note>] [--priority <priority>]", "Add a task");
         WriteCommand("view", "<id>", "Show one task");
         WriteCommand("done", "<id>", "Mark a task as done");
         WriteCommand("reopen", "<id>", "Move a task back to open");
-        WriteCommand("edit", "<id> [--title <title>] [--note <note>]", "Edit task details");
+        WriteCommand("edit", "<id> [--title <title>] [--note <note>] [--priority <priority>]", "Edit task details");
         WriteCommand("delete", "<id>", "Delete a task");
+
+        Console.WriteLine();
+        WriteSection("Priority values");
+        WriteMuted("  low, normal, high");
+        WriteMuted("  Short forms: l, n, h");
+        WriteMuted("  Also accepted: medium, med, m -> normal");
 
         Console.WriteLine();
         WriteSection("Aliases");
@@ -36,10 +42,10 @@ public static class ConsoleUi
 
         Console.WriteLine();
         WriteSection("Examples");
-        WriteMuted("  tasktracker add Buy groceries --note carrots potatoes oil");
-        WriteMuted("  tasktracker list --open");
+        WriteMuted("  tasktracker add Buy groceries --priority high --note carrots potatoes oil");
+        WriteMuted("  tasktracker list --open --priority high");
         WriteMuted("  tasktracker done 3");
-        WriteMuted("  tasktracker edit 3 --title Open task test --note this is a note");
+        WriteMuted("  tasktracker edit 3 --priority normal");
         WriteMuted("  tasktracker view 3");
 
         Console.WriteLine();
@@ -53,22 +59,25 @@ public static class ConsoleUi
         switch (command)
         {
             case "list":
-                ShowHeader("tasktracker list", "List tasks with optional status filters.");
-                WriteMuted("Usage: tasktracker list [--all | --open | --done]");
+                ShowHeader("tasktracker list", "List tasks with optional status and priority filters.");
+                WriteMuted("Usage: tasktracker list [--all | --open | --done] [--priority <low|normal|high>]");
                 WriteMuted("Alias: ls");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker list");
                 WriteMuted("  tasktracker list --open");
-                WriteMuted("  tasktracker ls --done");
+                WriteMuted("  tasktracker list --priority high");
+                WriteMuted("  tasktracker ls --done --priority low");
                 break;
 
             case "add":
                 ShowHeader("tasktracker add", "Create a new task.");
-                WriteMuted("Usage: tasktracker add <title> [--note <note>]");
+                WriteMuted("Usage: tasktracker add <title> [--note <note>] [--priority <low|normal|high>]");
                 WriteMuted("Alias: new");
+                WriteMuted("Default priority: normal");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker add Buy groceries");
-                WriteMuted("  tasktracker add Buy groceries --note carrots potatoes oil");
+                WriteMuted("  tasktracker add Buy groceries --priority high");
+                WriteMuted("  tasktracker add Buy groceries --priority high --note carrots potatoes oil");
                 break;
 
             case "view":
@@ -96,13 +105,14 @@ public static class ConsoleUi
                 break;
 
             case "edit":
-                ShowHeader("tasktracker edit", "Update a task title or note.");
-                WriteMuted("Usage: tasktracker edit <id> [--title <title>] [--note <note>]");
+                ShowHeader("tasktracker edit", "Update a task title, note, or priority.");
+                WriteMuted("Usage: tasktracker edit <id> [--title <title>] [--note <note>] [--priority <low|normal|high>]");
                 WriteMuted("Aliases: update, set");
                 WriteMuted("Examples:");
                 WriteMuted("  tasktracker edit 2 --title Buy groceries today");
                 WriteMuted("  tasktracker edit 2 --note carrots potatoes oil");
-                WriteMuted("  tasktracker edit 2 Buy groceries today --note carrots potatoes oil");
+                WriteMuted("  tasktracker edit 2 --priority high");
+                WriteMuted("  tasktracker edit 2 Buy groceries today --priority normal");
                 break;
 
             case "delete":
@@ -119,14 +129,18 @@ public static class ConsoleUi
         }
     }
 
-    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter)
+    public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter)
     {
-        string subtitle = completedFilter switch
+        string statusText = completedFilter switch
         {
-            true => "Showing completed tasks",
-            false => "Showing pending tasks",
-            _ => "Showing all tasks"
+            true => "completed",
+            false => "open",
+            _ => "all"
         };
+
+        string subtitle = priorityFilter == null
+            ? $"Showing {statusText} tasks"
+            : $"Showing {statusText} tasks with {TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant()} priority";
 
         ShowHeader("Task Board", subtitle);
         ShowSummary(tasks);
@@ -134,7 +148,7 @@ public static class ConsoleUi
         if (tasks.Count == 0)
         {
             Console.WriteLine();
-            WriteEmptyState(completedFilter);
+            WriteEmptyState(completedFilter, priorityFilter);
             return;
         }
 
@@ -148,6 +162,10 @@ public static class ConsoleUi
 
         WriteSection("Title");
         Console.WriteLine($"  {task.Title}");
+        Console.WriteLine();
+
+        WriteSection("Priority");
+        WritePriorityLine(task.Priority);
         Console.WriteLine();
 
         WriteSection("Note");
@@ -190,6 +208,11 @@ public static class ConsoleUi
         WriteStatusBox("Invalid input", "Task id must be a number.", ConsoleColor.Red);
     }
 
+    public static void ShowInvalidPriority()
+    {
+        WriteStatusBox("Invalid input", "Priority must be low, normal, or high.", ConsoleColor.Red);
+    }
+
     public static void ShowInvalidCommand(string command)
     {
         ShowHeader("Unknown Command", $"'{command}' is not a valid tasktracker command.");
@@ -216,6 +239,7 @@ public static class ConsoleUi
     {
         int completed = tasks.Count(t => t.IsCompleted);
         int pending = tasks.Count - completed;
+        int highPriority = tasks.Count(t => TaskPriority.TryNormalize(t.Priority, out string priority) && priority == TaskPriority.High);
 
         Console.WriteLine();
         WriteMetric("Total", tasks.Count, ConsoleColor.Cyan);
@@ -223,6 +247,8 @@ public static class ConsoleUi
         WriteMetric("Done", completed, ConsoleColor.Green);
         Console.Write("  ");
         WriteMetric("Open", pending, ConsoleColor.Yellow);
+        Console.Write("  ");
+        WriteMetric("High", highPriority, ConsoleColor.Red);
         Console.WriteLine();
     }
 
@@ -241,37 +267,42 @@ public static class ConsoleUi
     {
         int width = GetSafeWidth();
         int idWidth = 4;
-        int statusWidth = 11;
-        int fixedWidth = idWidth + statusWidth + 9;
+        int statusWidth = 8;
+        int priorityWidth = 8;
+        int fixedWidth = idWidth + statusWidth + priorityWidth + 12;
         int remaining = Math.Max(30, width - fixedWidth);
         int titleWidth = Math.Max(18, (int)(remaining * 0.42));
         int noteWidth = Math.Max(20, remaining - titleWidth);
 
-        WriteTableBorder('┌', '┬', '┐', idWidth, statusWidth, titleWidth, noteWidth);
-        WriteTableRow("ID", "Status", "Title", "Note", idWidth, statusWidth, titleWidth, noteWidth, isHeader: true);
-        WriteTableBorder('├', '┼', '┤', idWidth, statusWidth, titleWidth, noteWidth);
+        WriteTableBorder('┌', '┬', '┐', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
+        WriteTableRow("ID", "Status", "Priority", "Title", "Note", idWidth, statusWidth, priorityWidth, titleWidth, noteWidth, isHeader: true);
+        WriteTableBorder('├', '┼', '┤', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
 
         foreach (var task in tasks)
         {
             string statusText = task.IsCompleted ? "Done" : "Open";
+            string priorityText = TaskPriority.ToDisplayName(task.Priority);
             string note = string.IsNullOrWhiteSpace(task.Note) ? "-" : task.Note;
-            WriteTableRow(task.Id.ToString(), statusText, task.Title, note, idWidth, statusWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted);
+            WriteTableRow(task.Id.ToString(), statusText, priorityText, task.Title, note, idWidth, statusWidth, priorityWidth, titleWidth, noteWidth, isCompleted: task.IsCompleted, priority: task.Priority);
         }
 
-        WriteTableBorder('└', '┴', '┘', idWidth, statusWidth, titleWidth, noteWidth);
+        WriteTableBorder('└', '┴', '┘', idWidth, statusWidth, priorityWidth, titleWidth, noteWidth);
     }
 
     private static void WriteTableRow(
         string id,
         string status,
+        string priorityText,
         string title,
         string note,
         int idWidth,
         int statusWidth,
+        int priorityWidth,
         int titleWidth,
         int noteWidth,
         bool isHeader = false,
-        bool isCompleted = false)
+        bool isCompleted = false,
+        string? priority = null)
     {
         SetColor(ConsoleColor.DarkGray);
         Console.Write("│ ");
@@ -284,6 +315,12 @@ public static class ConsoleUi
 
         SetColor(isHeader ? ConsoleColor.Cyan : isCompleted ? ConsoleColor.Green : ConsoleColor.Yellow);
         Console.Write(Fit(status, statusWidth).PadRight(statusWidth));
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write(" │ ");
+
+        SetColor(isHeader ? ConsoleColor.Cyan : GetPriorityColor(priority));
+        Console.Write(Fit(priorityText, priorityWidth).PadRight(priorityWidth));
 
         SetColor(ConsoleColor.DarkGray);
         Console.Write(" │ ");
@@ -330,16 +367,46 @@ public static class ConsoleUi
         ResetColor();
     }
 
-    private static void WriteEmptyState(bool? completedFilter)
+    private static void WriteEmptyState(bool? completedFilter, string? priorityFilter)
     {
-        string message = completedFilter switch
+        string message;
+
+        if (priorityFilter != null)
         {
-            true => "No completed tasks yet.",
-            false => "No pending tasks. Nice work.",
-            _ => "No tasks found. Add one with: tasktracker add \"Task title\""
-        };
+            string priorityText = TaskPriority.ToDisplayName(priorityFilter).ToLowerInvariant();
+            message = $"No tasks found with {priorityText} priority.";
+        }
+        else
+        {
+            message = completedFilter switch
+            {
+                true => "No completed tasks yet.",
+                false => "No pending tasks. Nice work.",
+                _ => "No tasks found. Add one with: tasktracker add \"Task title\""
+            };
+        }
 
         WriteStatusBox("Empty", message, ConsoleColor.DarkGray);
+    }
+
+    private static void WritePriorityLine(string priority)
+    {
+        SetColor(GetPriorityColor(priority));
+        Console.WriteLine($"  {TaskPriority.ToDisplayName(priority)}");
+        ResetColor();
+    }
+
+    private static ConsoleColor GetPriorityColor(string? priority)
+    {
+        if (!TaskPriority.TryNormalize(priority, out string normalizedPriority))
+            normalizedPriority = TaskPriority.Normal;
+
+        return normalizedPriority switch
+        {
+            TaskPriority.High => ConsoleColor.Red,
+            TaskPriority.Low => ConsoleColor.DarkGray,
+            _ => ConsoleColor.Blue
+        };
     }
 
     private static void WriteSection(string text)
@@ -354,7 +421,7 @@ public static class ConsoleUi
         SetColor(ConsoleColor.Green);
         Console.Write($"  {command.PadRight(18)}");
         SetColor(ConsoleColor.Yellow);
-        Console.Write($" {args.PadRight(48)}");
+        Console.Write($" {Fit(args, 56).PadRight(56)}");
         SetColor(ConsoleColor.Gray);
         Console.WriteLine(description);
         ResetColor();
@@ -404,6 +471,7 @@ public static class ConsoleUi
             TaskResult.NotCompleted => $"Task {identifier} is not completed, nothing to undo.",
             TaskResult.TaskNotFound => $"Task {identifier} not found.",
             TaskResult.DuplicateTitle => $"Task title '{identifier}' already exists.",
+            TaskResult.InvalidPriority => "Priority must be low, normal, or high.",
             TaskResult.EmptyTitle => "Task title cannot be empty.",
             _ => "Unknown error."
         };
