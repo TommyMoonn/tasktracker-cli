@@ -212,13 +212,45 @@ public static class ConsoleUi
     public static void ShowLogo()
     {
         Console.WriteLine();
-        SetColor(ConsoleColor.Cyan);
-        Console.WriteLine(@"   _______        _    _______             _             ");
-        Console.WriteLine(@"  |__   __|      | |  |__   __|           | |            ");
-        Console.WriteLine(@"     | | __ _ ___| | __  | |_ __ __ _  ___| | _____ _ __ ");
-        Console.WriteLine(@"     | |/ _` / __| |/ /  | | '__/ _` |/ __| |/ / _ \ '__|");
-        Console.WriteLine(@"     | | (_| \__ \   <   | | | | (_| | (__|   <  __/ |   ");
-        Console.WriteLine(@"     |_|\__,_|___/_|\_\  |_|_|  \__,_|\___|_|\_\___|_|   ");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"  ████████╗ █████╗ ███████╗██╗  ██╗");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝");
+
+        SetColor(ConsoleColor.White);
+        Console.WriteLine(@"     ██║   ███████║███████╗█████╔╝ ");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"     ██║   ██╔══██║╚════██║██╔═██╗ ");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ██║   ██║  ██║███████║██║  ██╗");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+
+        Console.WriteLine();
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"  ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ ");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗");
+
+        SetColor(ConsoleColor.White);
+        Console.WriteLine(@"     ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝");
+
+        SetColor(ConsoleColor.Gray);
+        Console.WriteLine(@"     ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║");
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+
         ResetColor();
 
         Console.WriteLine();
@@ -243,6 +275,15 @@ public static class ConsoleUi
         SetColor(ConsoleColor.DarkGray);
         Console.WriteLine(" ]");
         ResetColor();
+
+        Console.WriteLine();
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write("     by ");
+        ResetColor();
+        SetColor(ConsoleColor.Magenta);
+        Console.WriteLine("@TommyMoonn");
+        ResetColor();
+
         Console.WriteLine();
     }
 
