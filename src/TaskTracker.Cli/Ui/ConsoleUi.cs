@@ -19,6 +19,7 @@ public static class ConsoleUi
         WriteSection("Core commands");
         WriteCommand("list", "[--all | --open | --done] [--archived] [--priority <priority>] [--due <filter>]", "List tasks");
         WriteCommand("search", "<text> [--archived | --include-archived]", "Search task titles and notes");
+        WriteCommand("tui", "", "Open the interactive terminal UI");
         WriteCommand("add", "<title> [--note <note>] [--priority <priority>] [--due <date>]", "Add a task");
         WriteCommand("view", "<id>", "Show one task");
         WriteCommand("fun", "", "Show the TaskTracker ASCII banner");
@@ -100,6 +101,23 @@ public static class ConsoleUi
                 WriteMuted("  tasktracker search groceries");
                 WriteMuted("  tasktracker search report draft");
                 WriteMuted("  tasktracker search groceries --archived");
+                break;
+
+            case "tui":
+                ShowHeader("tasktracker tui", "Open the interactive terminal UI.");
+                WriteMuted("Usage: tasktracker tui");
+                WriteMuted("Alias: ui");
+                WriteMuted("Keys:");
+                WriteMuted("  Up/Down    Move selection");
+                WriteMuted("  Left/Right Switch Active, Archived, and All views");
+                WriteMuted("  Space      Mark selected task done or reopen it");
+                WriteMuted("  a          Add task");
+                WriteMuted("  e          Edit selected task");
+                WriteMuted("  d          Delete selected task");
+                WriteMuted("  x          Archive completed task or restore archived task");
+                WriteMuted("  /          Search");
+                WriteMuted("  Esc        Clear search");
+                WriteMuted("  q          Quit");
                 break;
 
             case "add":
@@ -702,6 +720,7 @@ public static class ConsoleUi
         {
             "ls" or "-l" => "list",
             "find" => "search",
+            "ui" => "tui",
             "new" or "-a" => "add",
             "complete" or "finish" or "-c" => "done",
             "undo" or "revert" => "reopen",

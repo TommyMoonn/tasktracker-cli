@@ -1,5 +1,6 @@
 using TaskTracker.Cli.Models;
 using TaskTracker.Cli.Services;
+using TaskTracker.Cli.Tui;
 using TaskTracker.Cli.Ui;
 
 namespace TaskTracker.Cli.Cli;
@@ -91,6 +92,11 @@ public class CliApp
             case "del":
             case "-d": // Legacy alias. Kept for backwards compatibility.
                 HandleDelete(commandArgs);
+                break;
+
+            case "tui":
+            case "ui":
+                new TuiApp(_service).Run();
                 break;
 
             case "fun":
