@@ -1,5 +1,6 @@
-using TaskTracker.Cli.Models;
+﻿using TaskTracker.Cli.Models;
 using TaskTracker.Cli.Services;
+using TaskTracker.Cli.Ui;
 
 namespace TaskTracker.Cli.Tui;
 
@@ -20,6 +21,8 @@ public class TuiApp
 
         try
         {
+            ShowStartupSplash();
+
             while (_running)
             {
                 List<TaskItem> tasks = GetVisibleTasks();
@@ -347,5 +350,26 @@ public class TuiApp
             TaskResult.InvalidDueDate => "Due date must be today, tomorrow, yyyy-mm-dd, or none.",
             _ => "Action failed."
         };
+    }
+
+    private static void ShowStartupSplash()
+    {
+        Console.Clear();
+        ConsoleUi.ShowSplashLogo();
+
+        DateTime until = DateTime.UtcNow.AddMilliseconds(1200);
+
+        while (DateTime.UtcNow < until)
+        {
+            if (Console.KeyAvailable)
+            {
+                Console.ReadKey(intercept: true);
+                break;
+            }
+
+            Thread.Sleep(25);
+        }
+
+        Console.Clear();
     }
 }

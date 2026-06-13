@@ -211,80 +211,111 @@ public static class ConsoleUi
 
     public static void ShowLogo()
     {
+        WriteTaskTrackerLogo();
+        WriteTagline();
+        WriteAuthor();
+        Console.WriteLine();
+    }
+
+    public static void ShowSplashLogo()
+    {
+        WriteTaskTrackerLogo();
+        WriteAuthor();
+        WriteSplashHint();
+        Console.WriteLine();
+    }
+
+    private static void WriteTaskTrackerLogo()
+    {
         Console.WriteLine();
 
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"  ████████╗ █████╗ ███████╗██╗  ██╗");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝");
-
-        SetColor(ConsoleColor.White);
-        Console.WriteLine(@"     ██║   ███████║███████╗█████╔╝ ");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"     ██║   ██╔══██║╚════██║██╔═██╗ ");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ██║   ██║  ██║███████║██║  ██╗");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+        WriteColoredLine(ConsoleColor.DarkGray, @"  ████████╗ █████╗ ███████╗██╗  ██╗");
+        WriteColoredLine(ConsoleColor.Gray,     @"  ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝");
+        WriteColoredLine(ConsoleColor.White,    @"     ██║   ███████║███████╗█████╔╝ ");
+        WriteColoredLine(ConsoleColor.Gray,     @"     ██║   ██╔══██║╚════██║██╔═██╗ ");
+        WriteColoredLine(ConsoleColor.DarkGray, @"     ██║   ██║  ██║███████║██║  ██╗");
+        WriteColoredLine(ConsoleColor.DarkGray, @"     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
 
         Console.WriteLine();
 
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"  ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ ");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗");
-
-        SetColor(ConsoleColor.White);
-        Console.WriteLine(@"     ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝");
-
-        SetColor(ConsoleColor.Gray);
-        Console.WriteLine(@"     ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║");
-
-        SetColor(ConsoleColor.DarkGray);
-        Console.WriteLine(@"     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
+        WriteColoredLine(ConsoleColor.DarkGray, @"  ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ ");
+        WriteColoredLine(ConsoleColor.Gray,     @"  ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗");
+        WriteColoredLine(ConsoleColor.White,    @"     ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝");
+        WriteColoredLine(ConsoleColor.Gray,     @"     ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗");
+        WriteColoredLine(ConsoleColor.DarkGray, @"     ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║");
+        WriteColoredLine(ConsoleColor.DarkGray, @"     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝");
 
         ResetColor();
+    }
 
+    private static void WriteTagline()
+    {
         Console.WriteLine();
+
         SetColor(ConsoleColor.DarkGray);
         Console.Write("     [ ");
         ResetColor();
+
         SetColor(ConsoleColor.Green);
         Console.Write("track tasks");
         ResetColor();
+
         SetColor(ConsoleColor.DarkGray);
         Console.Write(" | ");
         ResetColor();
+
         SetColor(ConsoleColor.Yellow);
         Console.Write("clear backlog");
         ResetColor();
+
         SetColor(ConsoleColor.DarkGray);
         Console.Write(" | ");
         ResetColor();
+
         SetColor(ConsoleColor.Red);
         Console.Write("ship work");
         ResetColor();
+
         SetColor(ConsoleColor.DarkGray);
         Console.WriteLine(" ]");
         ResetColor();
+    }
 
+    private static void WriteAuthor()
+    {
         Console.WriteLine();
+
         SetColor(ConsoleColor.DarkGray);
         Console.Write("     by ");
         ResetColor();
+
         SetColor(ConsoleColor.Magenta);
         Console.WriteLine("@TommyMoonn");
         ResetColor();
+    }
 
+    private static void WriteSplashHint()
+    {
         Console.WriteLine();
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.Write("     [");
+        ResetColor();
+
+        SetColor(ConsoleColor.Cyan);
+        Console.Write("Press any key to skip");
+        ResetColor();
+
+        SetColor(ConsoleColor.DarkGray);
+        Console.WriteLine("]");
+        ResetColor();
+    }
+
+    private static void WriteColoredLine(ConsoleColor color, string text)
+    {
+        SetColor(color);
+        Console.WriteLine(text);
+        ResetColor();
     }
 
     public static void ShowTaskList(IReadOnlyList<TaskItem> tasks, bool? completedFilter, string? priorityFilter, string? dueFilter, bool? archivedFilter)
