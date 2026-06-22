@@ -4,99 +4,100 @@
 
 # TaskTracker CLI
 
-A small C# command-line task manager with JSON storage, task priorities, due dates, search, archiving, and a manual terminal UI.
+TaskTracker CLI is a small C# command-line task manager with JSON storage, priorities, due dates, search, archiving, and an optional terminal UI.
 
-## ✨ Features
+## Features
 
-- Add, edit, delete, complete, and reopen tasks
-- Store task title, note, status, priority, and due date
-- Search tasks by title or note
-- Archive completed tasks and restore archived tasks
-- Filter tasks by status, priority, due date, and archive state
-- View task details from the command line
-- Use an interactive terminal UI with keyboard navigation
-- Show a custom TaskTracker ASCII logo
+- Manage tasks from the command line
+- Add titles, notes, priorities, due dates, and status changes
+- Search, filter, archive, and restore tasks
+- Store tasks locally as JSON
+- Open an interactive terminal UI when preferred
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - C#
 - .NET
 - JSON file persistence
-- Manual console rendering
+- Manual console rendering for the TUI
 
-## 📦 Installation
+## Installation
 
-### Clone the repository
+### Option 1: Run from source
 
 ```bash
 git clone https://github.com/TommyMoonn/tasktracker-cli.git
-cd tasktracker-cli/src/TaskTracker.Cli
+cd tasktracker-cli
+dotnet run --project src/TaskTracker.Cli -- list
 ```
 
-### Run locally
+### Option 2: Install as a local .NET tool package
+
+From the repository root:
 
 ```bash
-dotnet run -- list
-dotnet run -- add "Buy groceries" --note "carrots potatoes oil"
+dotnet pack src/TaskTracker.Cli -c Release
+dotnet tool install --global --add-source ./src/TaskTracker.Cli/bin/Release tasktracker
 ```
 
-### Build locally
+After installing:
 
 ```bash
-dotnet build
+tasktracker list
 ```
 
-### Pack as a local .NET tool
+To update after local changes:
 
 ```bash
-dotnet pack -c Release
+dotnet pack src/TaskTracker.Cli -c Release
+dotnet tool update --global --add-source ./src/TaskTracker.Cli/bin/Release tasktracker
 ```
 
-### Install as a global tool
-
-```bash
-dotnet tool install --global --add-source ./bin/Release tasktracker
-```
-
-### Update the global tool after changes
-
-```bash
-dotnet pack -c Release
-dotnet tool update --global --add-source ./bin/Release tasktracker
-```
-
-### Uninstall the global tool
+To uninstall:
 
 ```bash
 dotnet tool uninstall --global tasktracker
 ```
 
-## ⚡ Usage
+### Option 3: Run with Docker
+
+Build the image from the repository root:
+
+```bash
+docker build -t tasktracker-cli .
+```
+
+Run the CLI:
+
+```bash
+docker run --rm -it tasktracker-cli list
+```
+
+To persist task data between container runs, mount a Docker volume:
+
+```bash
+docker volume create tasktracker-data
+docker run --rm -it -v tasktracker-data:/root tasktracker-cli list
+```
+
+## Usage
 
 ### List tasks
 
 ```bash
-tasktracker
 tasktracker list
-tasktracker ls
 ```
 
 ### Add a task
 
 ```bash
-tasktracker add "Submit assignment"
 tasktracker add "Submit assignment" --priority high --due tomorrow
-tasktracker add "Buy groceries" --note "carrots potatoes oil"
 ```
 
 ### Edit a task
 
 ```bash
 tasktracker edit 3 --title "Submit database assignment"
-tasktracker edit 3 --note "finish ERD first"
-tasktracker edit 3 --priority high
-tasktracker edit 3 --due 2026-06-20
-tasktracker edit 3 --due none
 ```
 
 ### Complete or reopen a task
@@ -106,115 +107,49 @@ tasktracker done 3
 tasktracker reopen 3
 ```
 
-### View task details
-
-```bash
-tasktracker view 3
-```
-
-### Delete a task
-
-```bash
-tasktracker delete 3
-```
-
-### Filter tasks
-
-```bash
-tasktracker list --open
-tasktracker list --done
-tasktracker list --priority high
-tasktracker list --due today
-tasktracker list --due week
-tasktracker list --overdue
-tasktracker list --archived
-tasktracker list --include-archived
-```
-
 ### Search tasks
 
 ```bash
 tasktracker search groceries
-tasktracker search assignment --include-archived
 ```
 
-### Archive tasks
+### Archive and restore tasks
 
 ```bash
-tasktracker archive
 tasktracker archive completed
-tasktracker archive 3
 tasktracker restore 3
 ```
 
-### Open the interactive TUI
+### Open the terminal UI
 
 ```bash
 tasktracker tui
-tasktracker ui
 ```
 
-### Show the logo
-
-```bash
-tasktracker fun
-tasktracker logo
-tasktracker banner
-```
-
-## ⌨️ TUI Controls
-
-```text
-Up/Down or j/k       Move selection
-PageUp/PageDown      Move by page
-Home/End             Jump to first or last task
-Left/Right or Tab    Switch view
-Space                Done or reopen selected task
-a                    Add task
-e                    Edit selected task
-d                    Delete selected task
-x                    Archive or restore selected task
-/                    Search
-Esc                  Clear search
-q                    Quit
-```
-
-## 📁 Project Structure
+## Project Structure
 
 ```text
 TaskTracker.Cli/
 ├── Cli/
-│   ├── CliApp.cs
-│   └── CliArguments.cs
 ├── Models/
-│   ├── TaskItem.cs
-│   ├── TaskPriority.cs
-│   └── TaskDueDate.cs
 ├── Persistence/
-│   ├── ITaskRepository.cs
-│   └── JsonTaskRepository.cs
 ├── Services/
-│   ├── TaskResult.cs
-│   ├── TaskService.cs
-│   └── TaskServices.cs
 ├── Tui/
-│   ├── TuiApp.cs
-│   ├── TuiRenderer.cs
-│   └── TuiState.cs
 ├── Ui/
-│   └── ConsoleUi.cs
 └── Program.cs
 ```
 
-## 🗃️ Data Storage
+## Data Storage
 
-Tasks are saved as JSON in the user profile directory.
+Tasks are saved as JSON in the user profile directory:
 
 ```text
 .tasktracker.json
 ```
 
-## 👤 Author
+When running with Docker, use a mounted volume if you want the task file to survive after the container exits.
+
+## Author
 
 Khoa Luong
 
